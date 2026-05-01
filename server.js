@@ -10,6 +10,8 @@ const PORT = 3000;
 const CACHE_DIR = path.join(__dirname, "cache");
 
 const ZONE_SIZE_DEGREES = 0.02;
+const OVERPASS_URL =
+  process.env.OVERPASS_URL || "http://overpass";
 
 let overpassQueue = Promise.resolve();
 
@@ -247,6 +249,10 @@ async function fetchOverpass(bbox) {
 (
   way["natural"="water"](${bbox.latMin},${bbox.lonMin},${bbox.latMax},${bbox.lonMax});
   way["waterway"="riverbank"](${bbox.latMin},${bbox.lonMin},${bbox.latMax},${bbox.lonMax});
+  way["natural"="river"](${bbox.latMin},${bbox.lonMin},${bbox.latMax},${bbox.lonMax});
+  way["natural"="steam"](${bbox.latMin},${bbox.lonMin},${bbox.latMax},${bbox.lonMax});
+  way["natural"="canal"](${bbox.latMin},${bbox.lonMin},${bbox.latMax},${bbox.lonMax});
+  way["natural"="ditch"](${bbox.latMin},${bbox.lonMin},${bbox.latMax},${bbox.lonMax});
   way["landuse"="reservoir"](${bbox.latMin},${bbox.lonMin},${bbox.latMax},${bbox.lonMax});
   way["landuse"="forest"](${bbox.latMin},${bbox.lonMin},${bbox.latMax},${bbox.lonMax});
   way["natural"="wood"](${bbox.latMin},${bbox.lonMin},${bbox.latMax},${bbox.lonMax});
@@ -257,7 +263,7 @@ out geom;
 `;
   const body = new URLSearchParams();
   body.set("data", query);
-  const response = await fetch("https://overpass1.curioo.city/api/interpreter", {
+  const response = await fetch(OVERPASS_URL + "/api/interpreter", {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
@@ -288,17 +294,13 @@ async function getOverpassData(z, x, y) {
   const promise = (async () => {
     try {
       console.log("Fetching Overpass zone:", zoneKey, zone);
-
       const data = await queuedOverpassFetch(zone);
-
       fs.writeFileSync(file, JSON.stringify(data, null, 2));
       return data;
     } catch (err) {
       console.error("Overpass failed, saving empty cache:", err.message);
-
       const empty = { elements: [] };
       fs.writeFileSync(file, JSON.stringify(empty, null, 2));
-
       return empty;
     } finally {
       pendingZoneRequests.delete(zoneKey);
@@ -334,6 +336,21 @@ function drawOsmElement(png, el, tileBbox) {
   if (!el.geometry || !Array.isArray(el.geometry)) return;
   const tags = el.tags || {};
   const points = el.geometry.map((p) => project(p.lat, p.lon, tileBbox));
+  if (
+    tags.waterway === "river" ||
+    tags.waterway === "stream" ||
+    tags.waterway === "canal" ||
+    tags.waterway === "ditch"
+  ) {
+    const width =
+      tags.waterway === "river" ? 3 :
+      tags.waterway === "canal" ? 2 :
+      1;
+
+    drawPolyline(png, points, width + 1, 45, 115, 170);
+    drawPolyline(png, points, width, 80, 165, 215);
+    return;
+  }
   if (
     tags.natural === "water" ||
     tags.waterway === "riverbank" ||
@@ -387,6 +404,10 @@ async function generateTile(z, x, y) {
     if (
       tags.natural === "water" ||
       tags.waterway === "riverbank" ||
+      tags.waterway === "river" ||
+      tags.waterway === "stream" ||
+      tags.waterway === "canal" ||
+      tags.waterway === "ditch" ||
       tags.landuse === "reservoir"
     ) {
       drawOsmElement(png, el, tileBbox);
