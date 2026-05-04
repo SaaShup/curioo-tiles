@@ -9,10 +9,9 @@ const TILE_SIZE = 256;
 const PORT = 3000;
 const CACHE_DIR = path.join(__dirname, "cache");
 
-const THEMES = require("./lib/themes");
+const { loadThemes, saveThemes } = require("./lib/themes");
 
 const DEFAULT_THEME = (process.env.THEME || "forest").toLowerCase();
-const THEME = THEMES[DEFAULT_THEME] || THEMES.forest;
 
 const ZONE_SIZE_DEGREES = 0.02;
 const OVERPASS_URL =
@@ -63,7 +62,7 @@ function drawBackground(png, tileX, tileY, theme) {
       const mudType = noise(Math.floor(wx / 80), Math.floor(wy / 80), 4);
       const dots = noise(wx, wy, 99);
 
-      let [r, g, b] = THEME.grass;
+      let [r, g, b] = theme.grass;
 
       r += Math.floor(small * 26) - 13;
       g += Math.floor(small * 34) - 17;
@@ -445,6 +444,8 @@ async function handleTileRequest(req, res, themeName) {
     return res.status(404).send("Only zoom 18 supported");
   }
 
+  const THEMES = loadThemes();
+
   const finalThemeName = (themeName || DEFAULT_THEME).toLowerCase();
   const theme =
   THEMES[finalThemeName] ||
@@ -460,6 +461,25 @@ async function handleTileRequest(req, res, themeName) {
 }
 
 app.use(express.static(path.join(__dirname, "public")));
+app.use(express.json());
+
+app.get("/api/themes", (req, res) => {
+  res.json(loadThemes());
+});
+
+app.put("/api/themes/:theme", (req, res) => {
+  const themes = loadThemes();
+  const themeName = req.params.theme.toLowerCase();
+
+  themes[themeName] = req.body;
+
+  saveThemes(themes);
+
+  res.json({
+    ok: true,
+    theme: themeName,
+  });
+});
 
 app.get("/:theme/:z/:x/:y.png", async (req, res) => {
   return handleTileRequest(req, res, req.params.theme);
