@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CuriooCity Tile Server</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/4.0.0/Control.FullScreen.css"
+    integrity="sha384-0N9oe1lOQjqjz3HBJJ0rFnCKIJ6LMptHziv4Dc/ZXRraU7pMy+6WHiq9AQ6nik4R" crossorigin="anonymous">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/4.0.0/Control.FullScreen.min.js"
+    integrity="sha384-Qi0vUMusDIbNaFm1lwGDdMTeqwHVAWCXmSwSDMXlgJVXYvYkwXnChcOzRvCeZk5O" crossorigin="anonymous">
+  </script>
+  <link rel="stylesheet" href="index.css" />
+</head>
+
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="eyebrow">🗺️ CuriooCity Explorer Tile Gateway</div>
+
+      <h1>Welcome to the CuriooCity<br />Tile Server</h1>
+
+      <p class="lead">
+        This server generates PNG map tiles for CuriooCity Explorer.
+        It provides zoom 18 tiles with cached OpenStreetMap and Overpass-based map features.
+      </p>
+
+      <div class="actions">
+        <a class="btn primary" href="/18/135329/89901.png">Open sample tile</a>
+        <a class="btn secondary" href="#tester">Try XYZ tile</a>
+      </div>
+
+      <div class="pills">
+        <div class="pill">Zoom 18</div>
+        <div class="pill">PNG tiles</div>
+        <div class="pill">256px</div>
+        <div class="pill">Cached zones</div>
+        <div class="pill">CuriooCity Ready</div>
+      </div>
+
+      <div class="status">
+        <span class="dot"></span>
+        Server online
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Main endpoint</h2>
+
+      <div class="endpoint">
+        <div class="method">GET</div>
+        <div>
+          <div class="path">/18/{x}/{y}.png</div>
+          <div class="desc">Main tile endpoint. Only zoom level 18 is supported.</div>
+          <pre>GET /18/135329/89901.png</pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="tester">
+      <h2>Live XYZ tester</h2>
+
+      <div class="tester">
+        <div>
+          <label for="z">Z</label>
+          <input id="z" type="number" value="18" readonly />
+        </div>
+
+        <div>
+          <label for="x">X</label>
+          <input id="x" type="number" value="135329" />
+        </div>
+
+        <div>
+          <label for="y">Y</label>
+          <input id="y" type="number" value="89901" />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" onclick="updateTile()">Load tile</button>
+        <button class="btn secondary" onclick="copyUrl()">Copy URL</button>
+      </div>
+      <hr>
+
+      <div class="preview-wrap">
+        <img id="preview" class="preview" src="/18/135329/89901.png" alt="Tile preview" />
+
+        <div class="preview-info">
+          <div class="desc">Generated tile URL:</div>
+          <code id="tileUrl" class="urlbox">/18/135329/89901.png</code>
+          <br><br>
+          <div class="desc">Example usage:</div>
+          <pre>curl https://YOUR_TILE_DOMAIN/18/135329/89901.png --output tile.png</pre>
+        </div>
+
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Live Leaflet map</h2>
+
+      <label for="themeSelect">Theme</label>
+      <select id="themeSelect">
+        <option value="default">Default</option>
+        <option value="forest">Forest</option>
+        <option value="city">City</option>
+        <option value="space">Space</option>
+      </select>
+
+      <p class="desc">
+        This map uses your tile server directly with zoom fixed to 18.
+      </p>
+
+      <div id="map"></div>
+    </section>
+
+    <footer>
+      Made for CuriooCity Explorer • A magical map adventure for kids
+    </footer>
+  </main>
+
+  <script>
+    function getSelectedTheme() {
+      return document.getElementById("themeSelect")?.value || "default";
+    }
+
+    function getTilePath() {
+      const x = document.getElementById("x").value.trim();
+      const y = document.getElementById("y").value.trim();
+      const theme = getSelectedTheme();
+
+      if (theme === "default") {
+        return `/18/${x}/${y}.png`;
+      }
+
+      return `/${theme}/18/${x}/${y}.png`;
+    }
+
+    function updateTile() {
+      const path = getTilePath();
+      const cacheBuster = `v=${Date.now()}`;
+
+      document.getElementById("preview").src = `${path}?${cacheBuster}`;
+      document.getElementById("tileUrl").textContent = path;
+    }
+
+    async function copyUrl() {
+      const absoluteUrl = window.location.origin + getTilePath();
+      await navigator.clipboard.writeText(absoluteUrl);
+    }
+
+    document.getElementById("x").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") updateTile();
+    });
+
+    document.getElementById("y").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") updateTile();
+    });
+
+    window.addEventListener("DOMContentLoaded", () => {
+      const map = L.map("map", {
+        fullscreenControl: true,
+        center: [48.692, 6.184],
+        zoom: 18,
+        minZoom: 18,
+        maxZoom: 18,
+        zoomControl: true
+      });
+
+      let tileLayer;
+
+      function getTileUrl(theme) {
+        if (theme === "default") {
+          return `/18/{x}/{y}.png?v=${Date.now()}`;
+        }
+
+        return `/${theme}/18/{x}/{y}.png?v=${Date.now()}`;
+      }
+
+      function updateTheme() {
+        const theme = getSelectedTheme();
+
+        if (tileLayer) {
+          map.removeLayer(tileLayer);
+        }
+
+        tileLayer = L.tileLayer(getTileUrl(theme), {
+          tileSize: 256,
+          minZoom: 18,
+          maxZoom: 18,
+          maxNativeZoom: 18,
+          attribution: "© CuriooCity"
+        }).addTo(map);
+
+        updateTile();
+      }
+
+      tileLayer = L.tileLayer(getTileUrl(getSelectedTheme()), {
+        tileSize: 256,
+        minZoom: 18,
+        maxZoom: 18,
+        maxNativeZoom: 18,
+        attribution: "© CuriooCity"
+      }).addTo(map);
+
+      L.marker([48.692, 6.184]).addTo(map);
+
+      document
+        .getElementById("themeSelect")
+        .addEventListener("change", updateTheme);
+    });
+  </script>
+</body>
+
+</html>

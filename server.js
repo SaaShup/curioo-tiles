@@ -9,6 +9,11 @@ const TILE_SIZE = 256;
 const PORT = 3000;
 const CACHE_DIR = path.join(__dirname, "cache");
 
+const THEMES = require("./lib/themes");
+
+const DEFAULT_THEME = (process.env.THEME || "forest").toLowerCase();
+const THEME = THEMES[DEFAULT_THEME] || THEMES.forest;
+
 const ZONE_SIZE_DEGREES = 0.02;
 const OVERPASS_URL =
   process.env.OVERPASS_URL || "http://overpass";
@@ -46,7 +51,7 @@ function lerp(a, b, t) {
   return a * (1 - t) + b * t;
 }
 
-function drawBackground(png, tileX, tileY) {
+function drawBackground(png, tileX, tileY, theme) {
   for (let y = 0; y < TILE_SIZE; y++) {
     for (let x = 0; x < TILE_SIZE; x++) {
       const wx = tileX * TILE_SIZE + x;
@@ -58,9 +63,8 @@ function drawBackground(png, tileX, tileY) {
       const mudType = noise(Math.floor(wx / 80), Math.floor(wy / 80), 4);
       const dots = noise(wx, wy, 99);
 
-      let r = 115;
-      let g = 175;
-      let b = 85;
+      let [r, g, b] = THEME.grass;
+
       r += Math.floor(small * 26) - 13;
       g += Math.floor(small * 34) - 17;
       b += Math.floor(small * 20) - 10;
@@ -73,31 +77,22 @@ function drawBackground(png, tileX, tileY) {
         g += 18;
       }
       if (dots > 0.985) {
-        r = 45;
-        g = 120;
-        b = 45;
+        [r, g, b] = theme.darkGrass;
       }
 
       if (dots < 0.01) {
-        r = 150;
-        g = 205;
-        b = 90;
+        [r, g, b] = theme.lightGrass;
       }
+      let mudR, mudG, mudB;
       if (mud > 0.65) {
         const blend = Math.min((mud - 0.65) * 3, 1);
         let mudR, mudG, mudB;
         if (mudType < 0.33) {
-          mudR = 95;
-          mudG = 70;
-          mudB = 50;
+          [mudR, mudG, mudB] = theme.mud1;
         } else if (mudType < 0.66) {
-          mudR = 150;
-          mudG = 95;
-          mudB = 65;
+          [mudR, mudG, mudB] = theme.mud2;
         } else {
-          mudR = 170;
-          mudG = 150;
-          mudB = 95;
+          [mudR, mudG, mudB] = theme.mud3;
         }
         mudR += Math.floor(small * 15);
         mudG += Math.floor(small * 10);
@@ -332,7 +327,7 @@ function roadWidth(highway) {
   }
 }
 
-function drawOsmElement(png, el, tileBbox) {
+function drawOsmElement(png, el, tileBbox, theme) {
   if (!el.geometry || !Array.isArray(el.geometry)) return;
   const tags = el.tags || {};
   const points = el.geometry.map((p) => project(p.lat, p.lon, tileBbox));
@@ -347,8 +342,8 @@ function drawOsmElement(png, el, tileBbox) {
       tags.waterway === "canal" ? 2 :
       1;
 
-    drawPolyline(png, points, width + 1, 45, 115, 170);
-    drawPolyline(png, points, width, 80, 165, 215);
+    drawPolyline(png, points, width + 1, ...theme.waterLine);
+    drawPolyline(png, points, width, ...theme.water);
     return;
   }
   if (
@@ -356,47 +351,47 @@ function drawOsmElement(png, el, tileBbox) {
     tags.waterway === "riverbank" ||
     tags.landuse === "reservoir"
   ) {
-    drawPolygon(png, points, 70, 145, 195);
-    drawPolyline(png, points, 1, 45, 115, 170);
+    drawPolygon(png, points, ...theme.water);
+    drawPolyline(png, points, 1, ...theme.waterLine);
     return;
   }
   if (tags.landuse === "forest" || tags.natural === "wood") {
-    drawPolygon(png, points, 55, 125, 65);
-    drawPolyline(png, points, 1, 35, 95, 45);
+    drawPolygon(png, points, ...theme.forest);
+    drawPolyline(png, points, 1, ...theme.forestLine);
     return;
   }
   if (tags.leisure === "park" || tags.landuse === "grass") {
-    drawPolygon(png, points, 105, 170, 85);
-    drawPolyline(png, points, 1, 75, 140, 65);
+    drawPolygon(png, points, ...theme.park);
+    drawPolyline(png, points, 1, ...theme.parkLine);
     return;
   }
   if (tags.building) {
-    drawPolygon(png, points, 185, 165, 135);
-    drawPolyline(png, points, 1, 130, 115, 95);
+    drawPolygon(png, points, ...theme.building);
+    drawPolyline(png, points, 1, ...theme.buildingLine);
     return;
   }
   if (tags.highway) {
     const width = roadWidth(tags.highway);
-    drawPolyline(png, points, width + 1, 125, 120, 110);
+    drawPolyline(png, points, width + 1, ...theme.roadOuter);
     if (
       tags.highway === "path" ||
       tags.highway === "footway" ||
       tags.highway === "cycleway"
     ) {
-      drawPolyline(png, points, width, 215, 205, 165);
+      drawPolyline(png, points, width, ...theme.pathInner);
     } else {
-      drawPolyline(png, points, width, 225, 215, 185);
+      drawPolyline(png, points, width, ...theme.roadInner);
     }
   }
 }
 
-async function generateTile(z, x, y) {
+async function generateTile(z, x, y, theme) {
   const png = new PNG({
     width: TILE_SIZE,
     height: TILE_SIZE,
   });
   const tileBbox = tile2bbox(x, y, z);
-  drawBackground(png,x,y);
+  drawBackground(png,x,y, theme);
   const data = await getOverpassData(z, x, y);
   const elements = data.elements || [];
   elements.forEach((el) => {
@@ -410,7 +405,7 @@ async function generateTile(z, x, y) {
       tags.waterway === "ditch" ||
       tags.landuse === "reservoir"
     ) {
-      drawOsmElement(png, el, tileBbox);
+      drawOsmElement(png, el, tileBbox, theme);
     }
   });
   elements.forEach((el) => {
@@ -421,36 +416,57 @@ async function generateTile(z, x, y) {
       tags.leisure === "park" ||
       tags.landuse === "grass"
     ) {
-      drawOsmElement(png, el, tileBbox);
+      drawOsmElement(png, el, tileBbox, theme);
     }
   });
   elements.forEach((el) => {
     if (el.tags && el.tags.building) {
-      drawOsmElement(png, el, tileBbox);
+      drawOsmElement(png, el, tileBbox, theme);
     }
   });
   elements.forEach((el) => {
     if (el.tags && el.tags.highway) {
-      drawOsmElement(png, el, tileBbox);
+      drawOsmElement(png, el, tileBbox, theme);
     }
   });
   return PNG.sync.write(png);
 }
 
-app.get("/:z/:x/:y.png", async (req, res) => {
+async function handleTileRequest(req, res, themeName) {
   const z = Number(req.params.z);
   const x = Number(req.params.x);
   const y = Number(req.params.y);
+
   if (!Number.isInteger(z) || !Number.isInteger(x) || !Number.isInteger(y)) {
     return res.status(400).send("Invalid tile coordinates");
   }
-  if (z < 15 || z > 18) {
-    return res.status(404).send("Only zoom 15 to 18 supported");
+
+  if (z !== 18) {
+    return res.status(404).send("Only zoom 18 supported");
   }
-  const buffer = await generateTile(z, x, y);
+
+  const finalThemeName = (themeName || DEFAULT_THEME).toLowerCase();
+  const theme =
+  THEMES[finalThemeName] ||
+  THEMES[DEFAULT_THEME] ||
+  THEMES.forest;
+
+  const buffer = await generateTile(z, x, y, theme);
+
   res.setHeader("Content-Type", "image/png");
   res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+
   res.send(buffer);
+}
+
+app.use(express.static(path.join(__dirname, "public")));
+
+app.get("/:theme/:z/:x/:y.png", async (req, res) => {
+  return handleTileRequest(req, res, req.params.theme);
+});
+
+app.get("/:z/:x/:y.png", async (req, res) => {
+  return handleTileRequest(req, res, null);
 });
 
 app.listen(PORT, () => {
