@@ -1,0 +1,225 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CuriooCity Theme Editor</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="/main.css" />
+  <link rel="stylesheet" href="/editor.css" />
+</head>
+
+<body>
+  <div class="page">
+    <div class="section">
+      <div class="eyebrow">🗺️ CuriooCity Explorer Tile Gateway</div>
+      <a href="/api/login" class="btn secondary login-btn"> 🔐 Login </a>
+
+      <h1>🎨 CuriooCity Theme Editor</h1>
+
+      <p class="lead">Edit map colors, preview them, then save your theme.</p>
+
+      <div class="topbar">
+        <label for="themeSelect">Theme</label>
+        <select id="themeSelect"></select>
+        <button onclick="previewTheme()" class="btn secondary">Preview</button>
+        <button onclick="saveTheme()" class="btn primary">Save theme</button>
+      </div>
+
+      <div id="editor"></div>
+
+      <div class="preview-map">
+        <div id="mapPreview"></div>
+      </div>
+
+      <div id="status" class="status"></div>
+    </div>
+  </div>
+
+  <script>
+    let themes = {};
+    let currentTheme = "forest";
+    let previewMap;
+    let previewLayer;
+
+    function getThemeTileUrl(theme) {
+      const v = Date.now();
+
+      if (theme === "default") {
+        return `/18/{x}/{y}.png?v=${v}`;
+      }
+
+      return `/${theme}/18/{x}/{y}.png?v=${v}`;
+    }
+
+    function initPreviewMap() {
+      previewMap = L.map("mapPreview", {
+        center: [48.692, 6.184],
+        zoom: 18,
+        minZoom: 18,
+        maxZoom: 18,
+        zoomControl: true
+      });
+
+      previewLayer = L.tileLayer(getThemeTileUrl(currentTheme), {
+        tileSize: 256,
+        minZoom: 18,
+        maxZoom: 18,
+        maxNativeZoom: 18,
+        attribution: "© CuriooCity"
+      }).addTo(previewMap);
+
+      L.marker([48.692, 6.184]).addTo(previewMap);
+    }
+
+    async function clearPreviewTheme(theme) {
+      await fetch(`/api/preview-theme/${theme}`, {
+        method: "DELETE"
+      });
+    }
+
+    function refreshPreviewMap() {
+      if (!previewMap) return;
+
+      if (previewLayer) {
+        previewMap.removeLayer(previewLayer);
+      }
+
+      previewLayer = L.tileLayer(getThemeTileUrl(currentTheme), {
+        tileSize: 256,
+        minZoom: 18,
+        maxZoom: 18,
+        maxNativeZoom: 18,
+        attribution: "© CuriooCity"
+      }).addTo(previewMap);
+
+      setTimeout(() => previewMap.invalidateSize(), 100);
+    }
+
+    function rgbToHex(rgb) {
+      return "#" + rgb.map(v => v.toString(16).padStart(2, "0")).join("");
+    }
+
+    function hexToRgb(hex) {
+      const n = parseInt(hex.slice(1), 16);
+      return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    }
+
+    async function loadThemes() {
+      const res = await fetch("/api/themes");
+      themes = await res.json();
+
+      const select = document.getElementById("themeSelect");
+      select.innerHTML = "";
+
+      Object.keys(themes).forEach(name => {
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        select.appendChild(option);
+      });
+
+      if (!themes[currentTheme]) {
+        currentTheme = Object.keys(themes)[0];
+      }
+
+      select.value = currentTheme;
+      await clearPreviewTheme(currentTheme);
+      renderEditor();
+    }
+
+    function renderEditor() {
+      currentTheme = document.getElementById("themeSelect").value;
+      const theme = themes[currentTheme];
+      const editor = document.getElementById("editor");
+
+      editor.innerHTML = "";
+
+      Object.entries(theme).forEach(([key, rgb]) => {
+        const row = document.createElement("div");
+        row.className = "color-row";
+
+        row.innerHTML = `
+          <label>${key}</label>
+          <input type="color" value="${rgbToHex(rgb)}" data-key="${key}">
+          <span class="rgb">${rgb.join(", ")}</span>
+        `;
+
+        row.querySelector("input").addEventListener("input", e => {
+          const newRgb = hexToRgb(e.target.value);
+          row.querySelector(".rgb").textContent = newRgb.join(", ");
+        });
+
+        editor.appendChild(row);
+      });
+
+      refreshPreviewMap();
+    }
+
+    function getEditorTheme() {
+      const inputs = document.querySelectorAll("input[type=color]");
+      const updated = {};
+
+      inputs.forEach(input => {
+        updated[input.dataset.key] = hexToRgb(input.value);
+      });
+
+      return updated;
+    }
+
+    async function previewTheme() {
+      const updated = getEditorTheme();
+
+      themes[currentTheme] = updated;
+
+      await fetch(`/api/preview-theme/${currentTheme}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(updated)
+      });
+
+      refreshPreviewMap();
+
+      document.getElementById("status").textContent = "Preview updated 👀";
+
+      setTimeout(() => {
+        document.getElementById("status").textContent = "";
+      }, 1500);
+    }
+
+    async function saveTheme() {
+      const updated = getEditorTheme();
+
+      await fetch(`/api/themes/${currentTheme}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(updated)
+      });
+
+      document.getElementById("status").textContent = "Theme saved ✅";
+
+      await loadThemes();
+      refreshPreviewMap();
+
+      setTimeout(() => {
+        document.getElementById("status").textContent = "";
+      }, 2000);
+    }
+
+    document.getElementById("themeSelect").addEventListener("change", async () => {
+      currentTheme = document.getElementById("themeSelect").value;
+      await clearPreviewTheme(currentTheme);
+      renderEditor();
+    });
+
+    loadThemes().then(() => {
+      initPreviewMap();
+    });
+  </script>
+</body>
+</html>

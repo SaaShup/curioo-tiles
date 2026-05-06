@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CuriooCity Tile Server</title>
+
+  <link rel="stylesheet" href="main.css" />
+</head>
+
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="eyebrow">🗺️ CuriooCity Explorer Tile Gateway</div>
+      <a href="/api/login" class="btn secondary login-btn"> 🔐 Login </a>
+
+      <h1>Welcome to the CuriooCity<br />Tile Server</h1>
+
+      <p class="lead">
+        This server generates PNG map tiles for CuriooCity Explorer.
+        It provides zoom 18 tiles with cached OpenStreetMap and Overpass-based map features.
+      </p>
+
+      <div class="actions">
+        <a class="btn primary" href="/18/135329/89901.png">
+          Open sample tile
+        </a>
+
+        <a class="btn secondary" href="/theme-editor.html">
+          Open Theme Editor
+        </a>
+      </div>
+
+      <div class="pills">
+        <div class="pill">Zoom 18</div>
+        <div class="pill">PNG tiles</div>
+        <div class="pill">256px</div>
+        <div class="pill">Cached zones</div>
+        <div class="pill">CuriooCity Ready</div>
+      </div>
+
+      <div class="status">
+        <span class="dot"></span>
+        Server online
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Main endpoint</h2>
+
+      <div class="endpoint">
+        <div class="method">GET</div>
+
+        <div>
+          <div class="path">/18/{x}/{y}.png</div>
+
+          <div class="desc">
+            Main tile endpoint. Only zoom level 18 is supported.
+          </div>
+
+          <pre>GET /18/135329/89901.png</pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Themed endpoints</h2>
+
+      <div class="endpoint">
+        <div class="method">GET</div>
+
+        <div>
+          <div class="path">/{theme}/18/{x}/{y}.png</div>
+
+          <div class="desc">
+            Generate themed tiles using the selected map style.
+          </div>
+
+<pre>
+GET /forest/18/135329/89901.png
+GET /city/18/135329/89901.png
+GET /space/18/135329/89901.png
+</pre>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      Made for CuriooCity Explorer • A magical map adventure for kids
+    </footer>
+  </main>
+</body>
+
+</html>
