@@ -447,10 +447,12 @@ async function handleTileRequest(req, res, themeName) {
   const THEMES = loadThemes();
 
   const finalThemeName = (themeName || DEFAULT_THEME).toLowerCase();
+
   const theme =
-  THEMES[finalThemeName] ||
-  THEMES[DEFAULT_THEME] ||
-  THEMES.forest;
+    previewThemes[finalThemeName] ||
+    THEMES[finalThemeName] ||
+    THEMES[DEFAULT_THEME] ||
+    THEMES.forest;
 
   const buffer = await generateTile(z, x, y, theme);
 
@@ -462,6 +464,7 @@ async function handleTileRequest(req, res, themeName) {
 
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
+let previewThemes = {};
 
 app.get("/api/themes", (req, res) => {
   res.json(loadThemes());
@@ -478,6 +481,28 @@ app.put("/api/themes/:theme", (req, res) => {
   res.json({
     ok: true,
     theme: themeName,
+  });
+});
+
+app.post("/api/preview-theme/:theme", (req, res) => {
+  const themeName = req.params.theme.toLowerCase();
+
+  previewThemes[themeName] = req.body;
+
+  res.json({
+    ok: true,
+    preview: themeName,
+  });
+});
+
+app.delete("/api/preview-theme/:theme", (req, res) => {
+  const themeName = req.params.theme.toLowerCase();
+
+  delete previewThemes[themeName];
+
+  res.json({
+    ok: true,
+    cleared: themeName,
   });
 });
 
