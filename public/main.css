@@ -221,6 +221,7 @@ pre {
 }
 
 footer {
+  padding: 20px;
   text-align: center;
   color: var(--muted);
   margin-top: 24px;

@@ -28,3 +28,15 @@ test("location input moves map", async ({ page }) => {
 
   await expect(page.locator("#mapPreview")).toBeVisible();
 });
+
+test("footer contains version", async ({ page }) => {
+  await page.goto("http://localhost:3000");
+
+  const version = page.locator("#version");
+
+  await expect(version).toBeVisible();
+
+  const text = await version.textContent();
+
+  expect(text).toMatch(/^v\d+\.\d+\.\d+/);
+});

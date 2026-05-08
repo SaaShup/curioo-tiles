@@ -3,6 +3,14 @@ import { describe, it, expect } from "vitest";
 import app from "../../server.js";
 
 describe("Tile API", () => {
+  it("should return app version", async () => {
+    const res = await request(app).get("/api/version");
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.version).toBeDefined();
+    expect(typeof res.body.version).toBe("string");
+  });
+  
   it("returns themes", async () => {
     const res = await request(app).get("/api/themes");
 

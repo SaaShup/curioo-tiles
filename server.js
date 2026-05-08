@@ -6,12 +6,14 @@ const zlib = require("zlib");
 const session = require("express-session");
 const Keycloak = require("keycloak-connect");
 const memoryStore = new session.MemoryStore();
+const packageJson = require("./package.json");
 
 const app = express();
 
 const TILE_SIZE = 256;
 const PORT = 3000;
 const CACHE_DIR = path.join(__dirname, "cache");
+const DEBUG = process.env.DEBUG === "true";
 
 const { loadThemes, saveThemes } = require("./lib/themes");
 
@@ -24,6 +26,12 @@ let overpassQueue = Promise.resolve();
 let previewThemes = {};
 
 const pendingZoneRequests = new Map();
+
+function debugLog(...args) {
+  if (DEBUG) {
+    console.log(...args);
+  }
+}
 
 function queuedOverpassFetch(bbox) {
   overpassQueue = overpassQueue.then(async () => {
@@ -373,13 +381,13 @@ async function getOverpassData(z, x, y) {
   const zoneKey = `${zone.latMin.toFixed(4)}_${zone.lonMin.toFixed(4)}`;
 
   if (pendingZoneRequests.has(zoneKey)) {
-    console.log("Waiting for existing Overpass zone:", zoneKey);
+    debugLog("Waiting for existing Overpass zone:", zoneKey);
     return await pendingZoneRequests.get(zoneKey);
   }
 
   const promise = (async () => {
     try {
-      console.log("Fetching Overpass zone:", zoneKey, zone);
+      debugLog("Fetching Overpass zone:", zoneKey, zone);
 
       const data = await queuedOverpassFetch(zone);
       const json = JSON.stringify(data);
@@ -628,6 +636,7 @@ app.use(session({
   saveUninitialized: true,
   store: memoryStore,
 }));
+app.set("trust proxy", true);
 
 const keycloak = new Keycloak({ store: memoryStore }, {
   realm: process.env.KEYCLOAK_REALM || "curioo",
@@ -642,7 +651,7 @@ const keycloak = new Keycloak({ store: memoryStore }, {
 
   credentials: {
     secret:
-      process.env.KEYCLOAK_CLIENT_SECRET || "GvB4SfOpkoXyM2AcF4NWG2yOG7PkH75e",
+      process.env.KEYCLOAK_CLIENT_SECRET || "curioo",
   },
 
   "confidential-port":
@@ -685,6 +694,12 @@ app.use(keycloak.middleware());
 
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
+
+app.get("/api/version", (req, res) => {
+  res.json({
+    version: packageJson.version,
+  });
+});
 
 app.get("/api/login", keycloak.protect(), (req, res) => {
   res.redirect("/editor.html");
