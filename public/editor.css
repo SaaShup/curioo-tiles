@@ -99,3 +99,11 @@ select:focus {
   margin-left: auto;
   text-decoration: none;
 }
+
+.topbar input[type="number"] {
+  max-width: 130px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  font-weight: 700;
+}

@@ -13,7 +13,7 @@
 <body>
   <div class="page">
     <div class="section">
-      <div class="eyebrow">🗺️ CuriooCity Explorer Tile Gateway</div>
+      <a class="eyebrow" href="/">🗺️ CuriooCity Explorer Tile Gateway</a>
       <a href="/api/login" class="btn secondary login-btn"> 🔐 Login </a>
 
       <h1>🎨 CuriooCity Theme Editor</h1>
@@ -25,6 +25,15 @@
         <select id="themeSelect"></select>
         <button onclick="previewTheme()" class="btn secondary">Preview</button>
         <button onclick="saveTheme()" class="btn primary">Save theme</button>
+        <label for="latInput">Lat</label>
+        <input id="latInput" type="number" step="any" value="48.692">
+
+        <label for="lonInput">Lon</label>
+        <input id="lonInput" type="number" step="any" value="6.184">
+
+        <button onclick="goToLocation()" class="btn secondary">
+          Go
+        </button>
       </div>
 
       <div id="editor"></div>
@@ -42,6 +51,22 @@
     let currentTheme = "forest";
     let previewMap;
     let previewLayer;
+
+    function goToLocation() {
+      const lat = Number(document.getElementById("latInput").value);
+      const lon = Number(document.getElementById("lonInput").value);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+        document.getElementById("status").textContent = "Invalid latitude/longitude ❌";
+        return;
+      }
+      localStorage.setItem("editor_lat", lat);
+      localStorage.setItem("editor_lon", lon);
+      previewMap.setView([lat, lon], 18);
+
+      setTimeout(() => {
+        previewMap.invalidateSize();
+      }, 100);
+    }
 
     function getThemeTileUrl(theme) {
       const v = Date.now();
@@ -218,7 +243,23 @@
     });
 
     loadThemes().then(() => {
+
+      const savedLat = localStorage.getItem("editor_lat");
+      const savedLon = localStorage.getItem("editor_lon");
+
+      if (savedLat && savedLon) {
+        document.getElementById("latInput").value = savedLat;
+        document.getElementById("lonInput").value = savedLon;
+      }
+
       initPreviewMap();
+
+      if (savedLat && savedLon) {
+        previewMap.setView(
+          [Number(savedLat), Number(savedLon)],
+          18
+        );
+      }
     });
   </script>
 </body>
