@@ -2,6 +2,17 @@ import request from "supertest";
 import { describe, it, expect } from "vitest";
 import app from "../../server.js";
 
+describe("Metrics API", () => {
+  it("should expose Prometheus metrics", async () => {
+    const res = await request(app).get("/metrics");
+
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["content-type"]).toContain("text/plain");
+    expect(res.text).toContain("tile_requests_total");
+    expect(res.text).toContain("overpass_cache_total");
+  });
+});
+
 describe("Tile API", () => {
   it("should return app version", async () => {
     const res = await request(app).get("/api/version");

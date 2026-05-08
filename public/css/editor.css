@@ -140,3 +140,12 @@ select:focus {
   font-weight: 900;
   font-size: 13px;
 }
+
+.cache-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--text);
+}

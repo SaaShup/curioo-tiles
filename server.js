@@ -7,6 +7,7 @@ const session = require("express-session");
 const Keycloak = require("keycloak-connect");
 const memoryStore = new session.MemoryStore();
 const packageJson = require("./package.json");
+const client = require("prom-client");
 
 const app = express();
 
@@ -29,6 +30,33 @@ let overpassQueue = Promise.resolve();
 let previewThemes = {};
 
 const pendingZoneRequests = new Map();
+
+client.collectDefaultMetrics();
+
+const tileRequests = new client.Counter({
+  name: "tile_requests_total",
+  help: "Total tile requests",
+  labelNames: ["theme", "status"],
+});
+
+const tileRenderDuration = new client.Histogram({
+  name: "tile_render_duration_seconds",
+  help: "Tile render duration in seconds",
+  labelNames: ["theme"],
+  buckets: [0.05, 0.1, 0.25, 0.5, 1, 2, 5],
+});
+
+const overpassRequests = new client.Counter({
+  name: "overpass_requests_total",
+  help: "Total Overpass requests",
+  labelNames: ["status"],
+});
+
+const overpassCache = new client.Counter({
+  name: "overpass_cache_total",
+  help: "Overpass cache hits and misses",
+  labelNames: ["result"],
+});
 
 function debugLog(...args) {
   if (DEBUG) {
@@ -376,6 +404,7 @@ async function getOverpassData(z, x, y) {
   const brFile = file + ".br";
 
   if (fs.existsSync(brFile)) {
+    overpassCache.inc({ result: "hit" });
     const compressed = fs.readFileSync(brFile);
     const json = zlib.brotliDecompressSync(compressed).toString("utf8");
     return JSON.parse(json);
@@ -391,16 +420,18 @@ async function getOverpassData(z, x, y) {
   const promise = (async () => {
     try {
       debugLog("Fetching Overpass zone:", zoneKey, zone);
+      overpassCache.inc({ result: "miss" });
 
       const data = await queuedOverpassFetch(zone);
       const json = JSON.stringify(data);
       const br = zlib.brotliCompressSync(Buffer.from(json));
 
       fs.writeFileSync(brFile, br);
-
+      overpassRequests.inc({ status: "success" });
       return data;
     } catch (err) {
       console.error("Overpass failed, saving empty cache:", err.message);
+      overpassRequests.inc({ status: "error" });
 
       const empty = { elements: [] };
       const json = JSON.stringify(empty);
@@ -625,7 +656,9 @@ async function handleTileRequest(req, res, themeName) {
     THEMES[DEFAULT_THEME] ||
     THEMES.forest;
 
+  const end = tileRenderDuration.startTimer({ theme: finalThemeName });
   const buffer = await generateTile(z, x, y, theme);
+  tileRequests.inc({ theme: finalThemeName, status: "success" });
 
   res.setHeader("Content-Type", "image/png");
   res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
@@ -693,6 +726,11 @@ app.use(keycloak.middleware());
 
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
+
+app.get("/metrics", async (req, res) => {
+  res.setHeader("Content-Type", client.register.contentType);
+  res.send(await client.register.metrics());
+});
 
 app.get("/api/version", (req, res) => {
   res.json({
