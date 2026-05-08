@@ -2,6 +2,7 @@ FROM node:24-alpine
 
 WORKDIR /app
 ENV NODE_ENV=production
+ENV DEBUG=false
 ENV ALLOWED_EDITOR_EMAILS=""
 ENV KEYCLOAK_REALM="curioo"
 ENV KEYCLOAK_URL="https://connect.curioo.city"
