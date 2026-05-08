@@ -19,14 +19,22 @@ let themes = {};
       }, 100);
     }
 
+    document.getElementById("cacheToggle")?.addEventListener("change", () => {
+      refreshPreviewMap();
+    });
+
+    function isCacheDisabled() {
+      return document.getElementById("cacheToggle")?.checked ?? true;
+    }
+
     function getThemeTileUrl(theme) {
-      const v = Date.now();
+      const cacheSuffix = isCacheDisabled() ? `?v=${Date.now()}` : "";
 
       if (theme === "default") {
-        return `/18/{x}/{y}.png?v=${v}`;
+        return `/18/{x}/{y}.png${cacheSuffix}`;
       }
 
-      return `/${theme}/18/{x}/{y}.png?v=${v}`;
+      return `/${theme}/18/{x}/{y}.png${cacheSuffix}`;
     }
 
     function initPreviewMap() {
@@ -45,8 +53,6 @@ let themes = {};
         maxNativeZoom: 18,
         attribution: "© CuriooCity"
       }).addTo(previewMap);
-
-      L.marker([48.692, 6.184]).addTo(previewMap);
     }
 
     async function clearPreviewTheme(theme) {
