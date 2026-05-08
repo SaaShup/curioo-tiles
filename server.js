@@ -15,6 +15,9 @@ const PORT = 3000;
 const CACHE_DIR = path.join(__dirname, "cache");
 const DEBUG = process.env.DEBUG === "true";
 
+const KEYCLOAK_URL = process.env.KEYCLOAK_URL || "https://connect.curioo.city";
+const KEYCLOAK_REALM = process.env.KEYCLOAK_REALM || "curioo";
+
 const { loadThemes, saveThemes } = require("./lib/themes");
 
 const DEFAULT_THEME = (process.env.THEME || "forest").toLowerCase();
@@ -639,19 +642,15 @@ app.use(session({
 app.set("trust proxy", true);
 
 const keycloak = new Keycloak({ store: memoryStore }, {
-  realm: process.env.KEYCLOAK_REALM || "curioo",
-  "auth-server-url":
-    process.env.KEYCLOAK_URL || "https://connect.curioo.city",
-
+  "realm": KEYCLOAK_REALM,
+  "auth-server-url": KEYCLOAK_URL,
   "ssl-required":
     process.env.KEYCLOAK_SSL_REQUIRED || "external",
-
   resource:
     process.env.KEYCLOAK_CLIENT_ID || "tilemap",
-
   credentials: {
     secret:
-      process.env.KEYCLOAK_CLIENT_SECRET || "curioo",
+      process.env.KEYCLOAK_CLIENT_SECRET || "local",
   },
 
   "confidential-port":
@@ -659,7 +658,7 @@ const keycloak = new Keycloak({ store: memoryStore }, {
 });
 
 function getAllowedEditorEmails() {
-  return (process.env.ALLOWED_EDITOR_EMAILS || "")
+  return (process.env.ALLOWED_EDITOR_EMAILS || "lav@lvbh.xyz")
     .split(",")
     .map(email => email.trim().toLowerCase())
     .filter(Boolean);
@@ -703,6 +702,58 @@ app.get("/api/version", (req, res) => {
 
 app.get("/api/login", keycloak.protect(), (req, res) => {
   res.redirect("/editor.html");
+});
+
+app.get("/api/logout", (req, res) => {
+  const redirectUri = encodeURIComponent(
+    `${req.protocol}://${req.get("host")}/editor.html`
+  );
+
+  const idToken = req.kauth?.grant?.id_token?.token;
+
+  if (!idToken) {
+    req.session.destroy(() => {
+      res.redirect("/editor.html");
+    });
+    return;
+  }
+
+  req.session.destroy(() => {
+    res.redirect(
+      `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}` +
+      `/protocol/openid-connect/logout` +
+      `?id_token_hint=${encodeURIComponent(idToken)}` +
+      `&post_logout_redirect_uri=${redirectUri}`
+    );
+  });
+});
+
+function makeInitials(nameOrEmail) {
+  const text = (nameOrEmail || "User").trim();
+
+  return text
+    .split(/\s+/)
+    .map(part => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+app.get("/api/me", (req, res) => {
+  const token = req.kauth?.grant?.access_token?.content;
+
+  if (!token) {
+    return res.json({ authenticated: false });
+  }
+
+  const name = token.name || token.preferred_username || token.email || "User";
+
+  res.json({
+    authenticated: true,
+    email: token.email,
+    name,
+    initials: makeInitials(name),
+  });
 });
 
 app.get("/api/themes", (req, res) => {

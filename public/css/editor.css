@@ -107,3 +107,36 @@ select:focus {
   padding: 12px;
   font-weight: 700;
 }
+
+.userbox {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 2px solid rgba(255,255,255,0.15);
+}
+
+.username {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.avatar-fallback {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #2563eb;
+  color: white;
+  font-weight: 900;
+  font-size: 13px;
+}

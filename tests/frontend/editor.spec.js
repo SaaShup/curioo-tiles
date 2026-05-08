@@ -29,6 +29,13 @@ test("location input moves map", async ({ page }) => {
   await expect(page.locator("#mapPreview")).toBeVisible();
 });
 
+test("editor shows login button when not authenticated", async ({ page }) => {
+  await page.goto("/editor.html");
+
+  await expect(page.locator("#authBox")).toBeVisible();
+  await expect(page.getByRole("link", { name: /login/i })).toBeVisible();
+});
+
 test("footer contains version", async ({ page }) => {
   await page.goto("http://localhost:3000");
 
