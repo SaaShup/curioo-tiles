@@ -323,11 +323,7 @@ async function fetchOverpass(bbox) {
 [out:json][timeout:25];
 (
   way["natural"="water"](${bbox.latMin},${bbox.lonMin},${bbox.latMax},${bbox.lonMax});
-  way["waterway"="riverbank"](${bbox.latMin},${bbox.lonMin},${bbox.latMax},${bbox.lonMax});
-  way["natural"="river"](${bbox.latMin},${bbox.lonMin},${bbox.latMax},${bbox.lonMax});
-  way["natural"="stream"](${bbox.latMin},${bbox.lonMin},${bbox.latMax},${bbox.lonMax});
-  way["natural"="canal"](${bbox.latMin},${bbox.lonMin},${bbox.latMax},${bbox.lonMax});
-  way["natural"="ditch"](${bbox.latMin},${bbox.lonMin},${bbox.latMax},${bbox.lonMax});
+  way["waterway"~"riverbank|river|stream|canal|ditch|drain"](${bbox.latMin},${bbox.lonMin},${bbox.latMax},${bbox.lonMax});
   way["landuse"="reservoir"](${bbox.latMin},${bbox.lonMin},${bbox.latMax},${bbox.lonMax});
   way["landuse"="forest"](${bbox.latMin},${bbox.lonMin},${bbox.latMax},${bbox.lonMax});
   way["natural"="wood"](${bbox.latMin},${bbox.lonMin},${bbox.latMax},${bbox.lonMax});
@@ -642,16 +638,48 @@ const keycloak = new Keycloak({ store: memoryStore }, {
     process.env.KEYCLOAK_SSL_REQUIRED || "external",
 
   resource:
-    process.env.KEYCLOAK_CLIENT_ID || "tiles-editor",
+    process.env.KEYCLOAK_CLIENT_ID || "tilemap",
 
   credentials: {
     secret:
-      process.env.KEYCLOAK_CLIENT_SECRET || "curioocity",
+      process.env.KEYCLOAK_CLIENT_SECRET || "GvB4SfOpkoXyM2AcF4NWG2yOG7PkH75e",
   },
 
   "confidential-port":
     Number(process.env.KEYCLOAK_CONFIDENTIAL_PORT || 0),
 });
+
+function getAllowedEditorEmails() {
+  return (process.env.ALLOWED_EDITOR_EMAILS || "")
+    .split(",")
+    .map(email => email.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function getLoggedUserEmail(req) {
+  return req.kauth?.grant?.access_token?.content?.email?.toLowerCase();
+}
+
+function requireAllowedEditorEmail(req, res, next) {
+  const allowedEmails = getAllowedEditorEmails();
+  const userEmail = getLoggedUserEmail(req);
+
+  if (!userEmail) {
+    return res.status(403).json({
+      ok: false,
+      error: "No email found in Keycloak token",
+    });
+  }
+
+  if (!allowedEmails.includes(userEmail)) {
+    return res.status(403).json({
+      ok: false,
+      error: `Email not allowed: ${userEmail}`,
+    });
+  }
+
+  next();
+}
 
 app.use(keycloak.middleware());
 
@@ -666,7 +694,7 @@ app.get("/api/themes", (req, res) => {
   res.json(loadThemes());
 });
 
-app.put("/api/themes/:theme", keycloak.protect(), (req, res) => {
+app.put("/api/themes/:theme", keycloak.protect(), requireAllowedEditorEmail, (req, res) => {
   const themes = loadThemes();
   const themeName = req.params.theme.toLowerCase();
 
@@ -681,7 +709,7 @@ app.put("/api/themes/:theme", keycloak.protect(), (req, res) => {
   });
 });
 
-app.post("/api/preview-theme/:theme", (req, res) => {
+app.post("/api/preview-theme/:theme", requireAllowedEditorEmail, (req, res) => {
   const themeName = req.params.theme.toLowerCase();
 
   previewThemes[themeName] = req.body;
@@ -692,7 +720,7 @@ app.post("/api/preview-theme/:theme", (req, res) => {
   });
 });
 
-app.delete("/api/preview-theme/:theme", (req, res) => {
+app.delete("/api/preview-theme/:theme", requireAllowedEditorEmail, (req, res) => {
   const themeName = req.params.theme.toLowerCase();
 
   delete previewThemes[themeName];
@@ -711,6 +739,12 @@ app.get("/:z/:x/:y.png", async (req, res) => {
   return handleTileRequest(req, res, null);
 });
 
-app.listen(PORT, () => {
-  console.log(`Tile server running on http://localhost:${PORT}/{z}/{x}/{y}.png`);
-});
+if (process.env.NODE_ENV !== "test") {
+  app.listen(PORT, () => {
+    console.log(
+      `Tile server running`
+    );
+  });
+}
+
+module.exports = app;

@@ -50,6 +50,12 @@ body {
   font-size: 13px;
   margin-bottom: 18px;
 }
+.eyebrow,
+.eyebrow:visited,
+.eyebrow:hover {
+  text-decoration: none;
+  color: #1d4ed8;
+}
 
 h1 {
   margin: 0;
@@ -165,7 +171,23 @@ h2 {
   font-weight: 900;
   font-size: 12px;
   background: #dbeafe;
-  color: #1d4ed8;
+  color: white;
+}
+
+.method.get {
+  background: #2563eb;
+}
+
+.method.post {
+  background: #16a34a;
+}
+
+.method.put {
+  background: #d97706;
+}
+
+.method.delete {
+  background: #dc2626;
 }
 
 .path {
