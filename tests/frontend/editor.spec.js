@@ -361,3 +361,40 @@ test("toggle pickers button hides and shows the editor", async ({ page }) => {
   await expect(editor).toBeHidden();
   await expect(toggleButton).toHaveText("Show pickers");
 });
+
+test("map fullscreen control is visible", async ({ page }) => {
+  await page.goto("http://localhost:3000/editor");
+
+  const fullscreenButton = page.locator("a[title*='Full Screen']")
+
+  await expect(fullscreenButton).toBeVisible();
+});
+
+test("map can enter fullscreen mode", async ({ page }) => {
+  await page.goto("http://localhost:3000/editor");
+
+  const fullscreenButton =  page.locator("a[title*='Full Screen']").first();
+
+  await expect(fullscreenButton).toBeVisible();
+  await fullscreenButton.click();
+
+  await expect(page.locator("#mapPreview")).toBeVisible();
+
+  const sizes = await page.evaluate(() => {
+    const map = document.getElementById("mapPreview");
+    const parent = map.parentElement;
+
+    const mapRect = map.getBoundingClientRect();
+    const parentRect = parent.getBoundingClientRect();
+
+    return {
+      mapWidth: Math.round(mapRect.width),
+      mapHeight: Math.round(mapRect.height),
+      parentWidth: Math.round(parentRect.width),
+      parentHeight: Math.round(parentRect.height),
+    };
+  });
+
+  expect(sizes.mapWidth).toBeGreaterThanOrEqual(sizes.parentWidth - 5);
+  expect(sizes.mapHeight).toBeGreaterThanOrEqual(sizes.parentHeight - 5);
+});

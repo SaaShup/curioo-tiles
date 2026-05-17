@@ -151,7 +151,8 @@ function initPreviewMap() {
     zoom: 18,
     minZoom: 18,
     maxZoom: 18,
-    zoomControl: true
+    zoomControl: true,
+    fullscreenControl: true
   });
 
   previewLayer = L.tileLayer(getThemeTileUrl(currentTheme), {
