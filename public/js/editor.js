@@ -343,11 +343,7 @@ document.getElementById("themeSelect").addEventListener("change", async () => {
   renderEditor();
 });
 
-Promise.all([
-  loadThemes(),
-  loadApiKeys()
-]).then(() => {
-
+loadThemes().then(() => {
   const savedLat = localStorage.getItem("editor_lat");
   const savedLon = localStorage.getItem("editor_lon");
 
@@ -359,10 +355,7 @@ Promise.all([
   initPreviewMap();
 
   if (savedLat && savedLon) {
-    previewMap.setView(
-      [Number(savedLat), Number(savedLon)],
-      18
-    );
+    previewMap.setView([Number(savedLat), Number(savedLon)], 18);
   }
 });
 
