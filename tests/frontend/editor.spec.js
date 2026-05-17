@@ -48,8 +48,8 @@ async function setupAuthenticatedEditor(page) {
 test("editor page loads", async ({ page }) => {
   await gotoEditor(page);
 
-  await expect(page).toHaveTitle(/CuriooCity Theme Editor/);
-  await expect(page.getByText("CuriooCity Theme Editor")).toBeVisible();
+  await expect(page).toHaveTitle("Tile Editor");
+  await expect(page.getByText("Tile Editor")).toBeVisible();
   await expect(page.locator("#themeSelect")).toBeVisible();
   await expect(page.getByText("Log in to preview/save")).toBeVisible();
 });
@@ -323,16 +323,21 @@ test("authenticated save button sends save API and shows save status", async ({ 
   await expect(page.getByText("Theme saved ✅")).toBeVisible();
 });
 
-test("footer contains version", async ({ page }) => {
-  await page.goto("http://localhost:3000");
+[
+  ["home", "http://localhost:3000"],
+  ["editor", "http://localhost:3000/editor"],
+].forEach(([name, url]) => {
+  test(`footer contains version on ${name} page`, async ({ page }) => {
+    await page.goto(url);
 
-  const version = page.locator("#version");
+    const version = page.locator("#version");
 
-  await expect(version).toBeVisible();
+    await expect(version).toBeVisible();
 
-  const text = await version.textContent();
+    const text = await version.textContent();
 
-  expect(text).toMatch(/^v\d+\.\d+\.\d+/);
+    expect(text).toMatch(/^v\d+\.\d+\.\d+/);
+  });
 });
 
 test("toggle pickers button hides and shows the editor", async ({ page }) => {
