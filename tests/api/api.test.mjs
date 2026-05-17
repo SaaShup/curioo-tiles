@@ -6,6 +6,32 @@ import app from "../../server.js";
 const require = createRequire(import.meta.url);
 const auth = require("../../lib/auth.js");
 
+function createMockRes() {
+  return {
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(payload) {
+      this.body = payload;
+    },
+  };
+}
+
+async function expectUnauthorized(url) {
+  const res = await request(app).get(url);
+
+  expect(res.statusCode).toBe(401);
+  expect(res.text).toContain("Unauthorized API key");
+}
+
+async function expectInvalidCoordinates(url) {
+  const res = await request(app).get(url);
+
+  expect(res.statusCode).toBe(400);
+  expect(res.text).toContain("Invalid tile coordinates");
+}
+
 describe("Metrics API", () => {
   it("should expose Prometheus metrics", async () => {
     const res = await request(app).get("/metrics");
@@ -25,7 +51,7 @@ describe("Tile API", () => {
     expect(res.body.version).toBeDefined();
     expect(typeof res.body.version).toBe("string");
   });
-  
+
   it("returns themes", async () => {
     const res = await request(app).get("/api/themes");
 
@@ -40,9 +66,7 @@ describe("Tile API", () => {
   });
 
   it("rejects invalid coordinates", async () => {
-    const res = await request(app).get("/18/abc/89901.png");
-
-    expect(res.statusCode).toBe(400);
+    await expectInvalidCoordinates("/18/abc/89901.png");
   });
 });
 
@@ -58,44 +82,27 @@ describe("Tile API key protection", () => {
   });
 
   it("rejects tile requests without an API key", async () => {
-    const res = await request(app).get("/18/abc/89901.png");
-
-    expect(res.statusCode).toBe(401);
-    expect(res.text).toContain("Unauthorized API key");
+    await expectUnauthorized("/18/abc/89901.png");
   });
 
   it("rejects tile requests with an invalid API key", async () => {
-    const res = await request(app).get("/18/abc/89901.png?key=badkey");
-
-    expect(res.statusCode).toBe(401);
-    expect(res.text).toContain("Unauthorized API key");
+    await expectUnauthorized("/18/abc/89901.png?key=badkey");
   });
 
   it("accepts tile requests with a valid API key", async () => {
-    const res = await request(app).get("/18/abc/89901.png?key=secret123");
-
-    expect(res.statusCode).toBe(400);
-    expect(res.text).toContain("Invalid tile coordinates");
+    await expectInvalidCoordinates("/18/abc/89901.png?key=secret123");
   });
 
-    it("rejects theme tile requests with an invalid API key", async () => {
-    const res = await request(app).get("/forest/18/abc/89901.png?key=badkey");
-
-    expect(res.statusCode).toBe(401);
-    expect(res.text).toContain("Unauthorized API key");
+  it("rejects theme tile requests with an invalid API key", async () => {
+    await expectUnauthorized("/forest/18/abc/89901.png?key=badkey");
   });
 
   it("accepts theme tile requests with a valid API key", async () => {
-    const res = await request(app).get("/18/abc/89901.png?key=secret123");
-
-    expect(res.statusCode).toBe(400);
-    expect(res.text).toContain("Invalid tile coordinates");
+    await expectInvalidCoordinates("/18/abc/89901.png?key=secret123");
   });
 
   it("rejects invalid coordinates", async () => {
-    const res = await request(app).get("/18/abc/89901.png?key=secret123");
-
-    expect(res.statusCode).toBe(400);
+    await expectInvalidCoordinates("/18/abc/89901.png?key=secret123");
   });
 });
 
@@ -120,56 +127,69 @@ describe("Auth helper utilities", () => {
   });
 
   it("blocks requests without an email", () => {
-    const req = { kauth: { grant: { access_token: { content: {} } } } };
-    const res = {
-      status(code) {
-        this.statusCode = code;
-        return this;
-      },
-      json(payload) {
-        this.body = payload;
+    const req = {
+      kauth: {
+        grant: {
+          access_token: {
+            content: {},
+          },
+        },
       },
     };
+
+    const res = createMockRes();
     const next = vi.fn();
 
     auth.requireAllowedEditorEmail(req, res, next);
 
     expect(res.statusCode).toBe(403);
-    expect(res.body).toEqual({ ok: false, error: "No email found in Keycloak token" });
+    expect(res.body).toEqual({
+      ok: false,
+      error: "No email found in Keycloak token",
+    });
     expect(next).not.toHaveBeenCalled();
   });
 
   it("blocks requests for disallowed email addresses", () => {
-    const req = { kauth: { grant: { access_token: { content: { email: "blocked@example.com" } } } } };
-    const res = {
-      status(code) {
-        this.statusCode = code;
-        return this;
-      },
-      json(payload) {
-        this.body = payload;
+    const req = {
+      kauth: {
+        grant: {
+          access_token: {
+            content: {
+              email: "blocked@example.com",
+            },
+          },
+        },
       },
     };
+
+    const res = createMockRes();
     const next = vi.fn();
 
     auth.requireAllowedEditorEmail(req, res, next);
 
     expect(res.statusCode).toBe(403);
-    expect(res.body).toEqual({ ok: false, error: "Email not allowed: blocked@example.com" });
+    expect(res.body).toEqual({
+      ok: false,
+      error: "Email not allowed: blocked@example.com",
+    });
     expect(next).not.toHaveBeenCalled();
   });
 
   it("allows requests when the email is in the allowed list", () => {
-    const req = { kauth: { grant: { access_token: { content: { email: "allowed@example.com" } } } } };
-    const res = {
-      status(code) {
-        this.statusCode = code;
-        return this;
-      },
-      json(payload) {
-        this.body = payload;
+    const req = {
+      kauth: {
+        grant: {
+          access_token: {
+            content: {
+              email: "allowed@example.com",
+            },
+          },
+        },
       },
     };
+
+    const res = createMockRes();
     const next = vi.fn();
 
     auth.requireAllowedEditorEmail(req, res, next);
