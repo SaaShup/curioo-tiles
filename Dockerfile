@@ -4,6 +4,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV DEBUG=false
+ENV TILE_API_KEYS=""
 ENV ALLOWED_EDITOR_EMAILS=""
 ENV KEYCLOAK_REALM="curioo"
 ENV KEYCLOAK_URL="https://connect.curioo.city"

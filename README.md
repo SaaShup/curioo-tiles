@@ -43,13 +43,22 @@ Create a `.env` file in the project root to set local defaults. The server uses 
 Example `.env`:
 
 ```env
-THEME=forest
-OVERPASS_URL=https://${OVERPASS_URL}
+# Server Configuration
+NODE_ENV=production
 PORT=3000
 DEBUG=false
 
+# Tile setup
+THEME=forest
+OVERPASS_URL=https://${OVERPASS_URL}
+
+# Tile API key protection
+# Leave TILE_API_KEYS empty to allow public tile requests.
+# Set this to a JSON array or a comma-separated list of accepted keys.
+# Supported query parameters: key, apikey, api_key
+TILE_API_KEYS=["secret123"]
+
 # Keycloak / auth defaults
-NODE_ENV=production
 ALLOWED_EDITOR_EMAILS=""
 KEYCLOAK_REALM="${REALM}"
 KEYCLOAK_URL="${KEYCLOAK_URL}"
@@ -74,6 +83,15 @@ Run with custom Overpass URL (example):
 
 ```bash
 sudo docker run -p 3000:3000 -e OVERPASS_URL=https://overpass1.curioo.city/api/interpreter saashup/curioo-tiles:latest
+```
+
+Run with API key protection enabled:
+
+```bash
+sudo docker run -p 3000:3000 \
+  -e OVERPASS_URL=https://overpass1.curioo.city/api/interpreter \
+  -e TILE_API_KEYS='["secret123"]' \
+  saashup/curioo-tiles:latest
 ```
 
 Testing

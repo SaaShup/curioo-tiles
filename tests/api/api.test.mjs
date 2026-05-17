@@ -46,6 +46,39 @@ describe("Tile API", () => {
   });
 });
 
+describe("Tile API key protection", () => {
+  const originalTileApiKeys = process.env.TILE_API_KEYS;
+
+  beforeEach(() => {
+    process.env.TILE_API_KEYS = JSON.stringify(["secret123"]);
+  });
+
+  afterEach(() => {
+    process.env.TILE_API_KEYS = originalTileApiKeys;
+  });
+
+  it("rejects tile requests without an API key", async () => {
+    const res = await request(app).get("/18/abc/89901.png");
+
+    expect(res.statusCode).toBe(401);
+    expect(res.text).toContain("Unauthorized API key");
+  });
+
+  it("rejects tile requests with an invalid API key", async () => {
+    const res = await request(app).get("/18/abc/89901.png?key=badkey");
+
+    expect(res.statusCode).toBe(401);
+    expect(res.text).toContain("Unauthorized API key");
+  });
+
+  it("accepts tile requests with a valid API key", async () => {
+    const res = await request(app).get("/18/abc/89901.png?key=secret123");
+
+    expect(res.statusCode).toBe(400);
+    expect(res.text).toContain("Invalid tile coordinates");
+  });
+});
+
 describe("Editor route alias", () => {
   it("serves the editor page at /editor", async () => {
     const res = await request(app).get("/editor");
