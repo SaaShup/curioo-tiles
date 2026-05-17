@@ -77,6 +77,26 @@ describe("Tile API key protection", () => {
     expect(res.statusCode).toBe(400);
     expect(res.text).toContain("Invalid tile coordinates");
   });
+
+    it("rejects theme tile requests with an invalid API key", async () => {
+    const res = await request(app).get("/forest/18/abc/89901.png?key=badkey");
+
+    expect(res.statusCode).toBe(401);
+    expect(res.text).toContain("Unauthorized API key");
+  });
+
+  it("accepts theme tile requests with a valid API key", async () => {
+    const res = await request(app).get("/18/abc/89901.png?key=secret123");
+
+    expect(res.statusCode).toBe(400);
+    expect(res.text).toContain("Invalid tile coordinates");
+  });
+
+  it("rejects invalid coordinates", async () => {
+    const res = await request(app).get("/18/abc/89901.png?key=secret123");
+
+    expect(res.statusCode).toBe(400);
+  });
 });
 
 describe("Editor route alias", () => {
