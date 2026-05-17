@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <title>CuriooCity Theme Editor</title>
@@ -32,8 +32,23 @@
       <div class="topbar">
         <label for="themeSelect">Theme</label>
         <select id="themeSelect"></select>
-        <button onclick="previewTheme()" class="btn secondary">Preview</button>
-        <button onclick="saveTheme()" class="btn primary">Save theme</button>
+        <button id="previewBtn" onclick="previewTheme()" class="btn secondary" style="display:none">Preview</button>
+        <button id="saveBtn" onclick="saveTheme()" class="btn primary" style="display:none">Save theme</button>
+        <span id="authHint" class="auth-hint" style="display:none; margin-left:8px; color:#666;">Log in to preview/save</span>
+        <label class="cache-toggle">
+          <input id="cacheToggle" type="checkbox">
+          Disable cache
+        </label>
+      </div>
+
+      <div id="apiKeyRow" class="api-key-row" style="display:none;">
+        <label for="apiKeyInput">Tile API Key</label>
+        <input id="apiKeyInput" type="text" readonly>
+        <button id="toggleApiKeyBtn" type="button" class="btn secondary">Show</button>
+        <span id="apiKeyHint" class="api-key-hint"></span>
+      </div>
+
+      <div class="location-row">
         <label for="latInput">Lat</label>
         <input id="latInput" type="number" step="any" value="48.692">
 
@@ -43,10 +58,6 @@
         <button onclick="goToLocation()" class="btn secondary">
           Go
         </button>
-        <label class="cache-toggle">
-          <input id="cacheToggle" type="checkbox">
-          Disable cache
-        </label>
       </div>
 
       <div id="editor"></div>
@@ -58,6 +69,10 @@
       <div id="status" class="status"></div>
     </div>
   </div>
+    <footer>
+      Made for CuriooCity Explorer • A magical map adventure for kids • 
+      <span id="version"></span>
+    </footer>
   <script src="js/editor.js"></script>
 </body>
 </html>

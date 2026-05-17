@@ -1,6 +1,48 @@
+import { createRequire } from "node:module";
 import request from "supertest";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import app from "../../server.js";
+
+const require = createRequire(import.meta.url);
+const auth = require("../../lib/auth.js");
+
+function createMockRes() {
+  return {
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(payload) {
+      this.body = payload;
+    },
+  };
+}
+
+function createAuthReq(email) {
+  return {
+    kauth: {
+      grant: {
+        access_token: {
+          content: email ? { email } : {},
+        },
+      },
+    },
+  };
+}
+
+async function expectUnauthorized(url) {
+  const res = await request(app).get(url);
+
+  expect(res.statusCode).toBe(401);
+  expect(res.text).toContain("Unauthorized API key");
+}
+
+async function expectInvalidCoordinates(url) {
+  const res = await request(app).get(url);
+
+  expect(res.statusCode).toBe(400);
+  expect(res.text).toContain("Invalid tile coordinates");
+}
 
 describe("Metrics API", () => {
   it("should expose Prometheus metrics", async () => {
@@ -21,7 +63,7 @@ describe("Tile API", () => {
     expect(res.body.version).toBeDefined();
     expect(typeof res.body.version).toBe("string");
   });
-  
+
   it("returns themes", async () => {
     const res = await request(app).get("/api/themes");
 
@@ -36,8 +78,92 @@ describe("Tile API", () => {
   });
 
   it("rejects invalid coordinates", async () => {
-    const res = await request(app).get("/18/abc/89901.png");
+    await expectInvalidCoordinates("/18/abc/89901.png");
+  });
+});
 
-    expect(res.statusCode).toBe(400);
+describe("Tile API key protection", () => {
+  const originalTileApiKeys = process.env.TILE_API_KEYS;
+
+  beforeEach(() => {
+    process.env.TILE_API_KEYS = JSON.stringify(["secret123"]);
+  });
+
+  afterEach(() => {
+    process.env.TILE_API_KEYS = originalTileApiKeys;
+  });
+
+  it.each([
+    ["/18/abc/89901.png"],
+    ["/18/abc/89901.png?key=badkey"],
+    ["/forest/18/abc/89901.png?key=badkey"],
+  ])("rejects unauthorized tile request %s", async url => {
+    await expectUnauthorized(url);
+  });
+
+  it.each([
+    ["/18/abc/89901.png?key=secret123"],
+    ["/forest/18/abc/89901.png?key=secret123"],
+  ])("accepts authorized tile request %s", async url => {
+    await expectInvalidCoordinates(url);
+  });
+});
+
+describe("Editor route alias", () => {
+  it("serves the editor page at /editor", async () => {
+    const res = await request(app).get("/editor");
+
+    expect(res.statusCode).toBe(200);
+    expect(res.text).toContain("CuriooCity Theme Editor");
+  });
+});
+describe("Auth helper utilities", () => {
+  const originalEnv = process.env.ALLOWED_EDITOR_EMAILS;
+
+  beforeEach(() => {
+    process.env.ALLOWED_EDITOR_EMAILS = "allowed@example.com";
+  });
+
+  afterEach(() => {
+    process.env.ALLOWED_EDITOR_EMAILS = originalEnv;
+  });
+
+  it.each([
+    [
+      "blocks requests without an email",
+      undefined,
+      {
+        ok: false,
+        error: "No email found in Keycloak token",
+      },
+    ],
+    [
+      "blocks requests for disallowed email addresses",
+      "blocked@example.com",
+      {
+        ok: false,
+        error: "Email not allowed: blocked@example.com",
+      },
+    ],
+  ])("%s", (_title, email, expectedBody) => {
+    const res = createMockRes();
+    const next = vi.fn();
+
+    auth.requireAllowedEditorEmail(createAuthReq(email), res, next);
+
+    expect(res.statusCode).toBe(403);
+    expect(res.body).toEqual(expectedBody);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it("allows requests when the email is in the allowed list", () => {
+    const res = createMockRes();
+    const next = vi.fn();
+
+    auth.requireAllowedEditorEmail(createAuthReq("allowed@example.com"), res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    expect(res.statusCode).toBeUndefined();
+    expect(res.body).toBeUndefined();
   });
 });

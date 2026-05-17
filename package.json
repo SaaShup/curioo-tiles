@@ -1,21 +1,22 @@
 {
   "name": "tiles",
-  "version": "1.8.0",
+  "version": "2.0.0",
   "description": "playwright test",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "rm -rf cache && THEME=forest OVERPASS_URL=https://overpass1.curioo.city node server.js",
+    "dev": "dotenv -e .env -- rm -rf cache && node server.js",
     "test:api": "NODE_ENV=test vitest run",
     "test:frontend": "playwright test",
     "test:all": "npm run test:api && npm run test:frontend",
-    "test": "start-server-and-test start http://localhost:3000 \"npm run test:all\""
+    "test": "dotenv -e .env-dev -- start-server-and-test start http://localhost:3000 \"npm run test:all\""
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "dotenv": "^16.1.4",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
     "keycloak-connect": "^26.1.1",
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
+    "dotenv-cli": "^11.0.0",
     "start-server-and-test": "^3.0.2",
     "supertest": "^7.2.2",
     "vitest": "^4.1.5"
