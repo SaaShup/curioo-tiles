@@ -72,11 +72,17 @@ async function loadApiKeys() {
     apiKeyInput.placeholder = currentApiKeys ? "" : "***********";
     apiKeyInput.readOnly = true;
     toggleButton.textContent = "Show";
-    apiKeyHint.textContent = currentApiKeys
-      ? `${keys.length} key${keys.length === 1 ? "" : "s"} configured`
-      : "No keys configured";
+    let apiKeyMessage;
+    if (currentApiKeys) {
+      const suffix = keys.length === 1 ? "" : "s";
+      apiKeyMessage = `${keys.length} key${suffix} configured`;
+    } else {
+      apiKeyMessage = "No keys configured";
+    }
+    apiKeyHint.textContent = apiKeyMessage;
     apiKeyRow.style.display = "flex";
   } catch (err) {
+    console.error("Failed to load API keys:", err);
     currentApiKeys = "";
     apiKeysHidden = true;
     apiKeyInput.value = "";
@@ -414,7 +420,6 @@ document.addEventListener("keydown", (e) => {
       return;
     }
     previewTheme();
-    return;
   }
 });
 
