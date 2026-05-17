@@ -115,6 +115,8 @@ sudo docker run -p 3000:3000 \
 
 ## Monitoring
 
+### Prometheus 
+
 This service exposes Prometheus-compatible metrics at the `/metrics` endpoint (exported using `prom-client`). Metrics include default NodeJS process metrics plus these application-specific metrics:
 
 - `tile_requests_total{theme,status}` — counter of tile requests by theme and HTTP status.
@@ -132,6 +134,22 @@ scrape_configs:
 		metrics_path: '/metrics'
 		scheme: http
 ```
+
+### Grafana
+
+A ready-to-import Grafana dashboard is included for monitoring CuriooCity Tiles with Prometheus.
+
+The dashboard provides:
+
+Tile request rate monitoring
+Total tile requests
+HTTP status distribution
+Overpass cache statistics
+4xx / 5xx error monitoring
+Successful request tracking
+
+Import the dashboard JSON file into Grafana. 
+You can [Download Grafana Dashboard here](public/grafana-dashboard.json)
 
 Notes:
 - If your instance is behind authentication (Keycloak), ensure Prometheus can access `/metrics` (allowlist the IP or configure an unauthenticated metrics endpoint), or use a pull-proxy or Pushgateway.
