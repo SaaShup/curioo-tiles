@@ -18,6 +18,18 @@ function createMockRes() {
   };
 }
 
+function createAuthReq(email) {
+  return {
+    kauth: {
+      grant: {
+        access_token: {
+          content: email ? { email } : {},
+        },
+      },
+    },
+  };
+}
+
 async function expectUnauthorized(url) {
   const res = await request(app).get(url);
 
@@ -81,28 +93,19 @@ describe("Tile API key protection", () => {
     process.env.TILE_API_KEYS = originalTileApiKeys;
   });
 
-  it("rejects tile requests without an API key", async () => {
-    await expectUnauthorized("/18/abc/89901.png");
+  it.each([
+    ["/18/abc/89901.png"],
+    ["/18/abc/89901.png?key=badkey"],
+    ["/forest/18/abc/89901.png?key=badkey"],
+  ])("rejects unauthorized tile request %s", async url => {
+    await expectUnauthorized(url);
   });
 
-  it("rejects tile requests with an invalid API key", async () => {
-    await expectUnauthorized("/18/abc/89901.png?key=badkey");
-  });
-
-  it("accepts tile requests with a valid API key", async () => {
-    await expectInvalidCoordinates("/18/abc/89901.png?key=secret123");
-  });
-
-  it("rejects theme tile requests with an invalid API key", async () => {
-    await expectUnauthorized("/forest/18/abc/89901.png?key=badkey");
-  });
-
-  it("accepts theme tile requests with a valid API key", async () => {
-    await expectInvalidCoordinates("/18/abc/89901.png?key=secret123");
-  });
-
-  it("rejects invalid coordinates", async () => {
-    await expectInvalidCoordinates("/18/abc/89901.png?key=secret123");
+  it.each([
+    ["/18/abc/89901.png?key=secret123"],
+    ["/forest/18/abc/89901.png?key=secret123"],
+  ])("accepts authorized tile request %s", async url => {
+    await expectInvalidCoordinates(url);
   });
 });
 
@@ -127,16 +130,7 @@ describe("Auth helper utilities", () => {
   });
 
   it("blocks requests without an email", () => {
-    const req = {
-      kauth: {
-        grant: {
-          access_token: {
-            content: {},
-          },
-        },
-      },
-    };
-
+    const req = createAuthReq();
     const res = createMockRes();
     const next = vi.fn();
 
@@ -151,18 +145,7 @@ describe("Auth helper utilities", () => {
   });
 
   it("blocks requests for disallowed email addresses", () => {
-    const req = {
-      kauth: {
-        grant: {
-          access_token: {
-            content: {
-              email: "blocked@example.com",
-            },
-          },
-        },
-      },
-    };
-
+    const req = createAuthReq("blocked@example.com");
     const res = createMockRes();
     const next = vi.fn();
 
@@ -177,18 +160,7 @@ describe("Auth helper utilities", () => {
   });
 
   it("allows requests when the email is in the allowed list", () => {
-    const req = {
-      kauth: {
-        grant: {
-          access_token: {
-            content: {
-              email: "allowed@example.com",
-            },
-          },
-        },
-      },
-    };
-
+    const req = createAuthReq("allowed@example.com");
     const res = createMockRes();
     const next = vi.fn();
 
