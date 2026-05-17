@@ -59,18 +59,6 @@
   background: #ffffff;
 }
 
-.location-row {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  margin-bottom: 18px;
-  flex-wrap: wrap;
-  padding: 16px;
-  border-radius: 18px;
-  background: #f3f4f6;
-  border: 1px solid var(--border);
-}
-
 .color-row {
   display: flex;
   align-items: center;
@@ -174,6 +162,10 @@ select:focus {
   align-items: center;
   margin-bottom: 18px;
   flex-wrap: wrap;
+  padding: 16px;
+  border-radius: 18px;
+  background: #f3f4f6;
+  border: 1px solid var(--border);
 }
 
 .location-row input[type="number"] {

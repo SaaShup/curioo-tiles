@@ -1,4 +1,4 @@
-import { createRequire } from "module";
+import { createRequire } from "node:module";
 import request from "supertest";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import app from "../../server.js";
