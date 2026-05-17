@@ -158,6 +158,98 @@ test("editor shows preview and save buttons when authenticated", async ({ page }
   await expect(page.getByRole("link", { name: /logout/i })).toBeVisible();
 });
 
+test("authenticated editor shows the hidden tile API key input", async ({ page }) => {
+  await page.route("**/api/me", route =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        authenticated: true,
+        email: "tester@example.com",
+        name: "Test User",
+        initials: "TU",
+      }),
+    })
+  );
+
+  await page.route("**/api/themes", route =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        forest: {
+          background: [255, 255, 255, 255],
+          road: [0, 0, 0, 255],
+        },
+      }),
+    })
+  );
+
+  await page.route("**/api/tile-api-keys", route =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ keys: ["secret123"] }),
+    })
+  );
+
+  await page.goto("http://localhost:3000/editor");
+
+  await expect(page.locator("#apiKeyRow")).toBeVisible();
+  await expect(page.locator("#apiKeyInput")).toHaveAttribute("type", "text");
+  await expect(page.locator("#apiKeyInput")).toHaveValue("*********");
+  await expect(page.getByRole("button", { name: "Show" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Show" }).click();
+
+  await expect(page.locator("#apiKeyInput")).toHaveAttribute("type", "text");
+  await expect(page.locator("#apiKeyInput")).toHaveValue("secret123");
+  await expect(page.getByRole("button", { name: "Hide" })).toBeVisible();
+});
+
+test("authenticated editor shows an empty tile API key input when no keys are configured", async ({ page }) => {
+  await page.route("**/api/me", route =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        authenticated: true,
+        email: "tester@example.com",
+        name: "Test User",
+        initials: "TU",
+      }),
+    })
+  );
+
+  await page.route("**/api/themes", route =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        forest: {
+          background: [255, 255, 255, 255],
+          road: [0, 0, 0, 255],
+        },
+      }),
+    })
+  );
+
+  await page.route("**/api/tile-api-keys", route =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ keys: [] }),
+    })
+  );
+
+  await page.goto("http://localhost:3000/editor");
+
+  await expect(page.locator("#apiKeyRow")).toBeVisible();
+  await expect(page.locator("#apiKeyInput")).toHaveAttribute("type", "text");
+  await expect(page.locator("#apiKeyInput")).toHaveValue("");
+  await expect(page.getByText("No keys configured")).toBeVisible();
+});
+
 test("authenticated preview button sends preview API and updates status", async ({ page }) => {
   await page.route("**/api/me", route =>
     route.fulfill({

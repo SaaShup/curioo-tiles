@@ -41,6 +41,13 @@
         </label>
       </div>
 
+      <div id="apiKeyRow" class="api-key-row" style="display:none;">
+        <label for="apiKeyInput">Tile API Key</label>
+        <input id="apiKeyInput" type="text" readonly>
+        <button id="toggleApiKeyBtn" type="button" class="btn secondary">Show</button>
+        <span id="apiKeyHint" class="api-key-hint"></span>
+      </div>
+
       <div class="location-row">
         <label for="latInput">Lat</label>
         <input id="latInput" type="number" step="any" value="48.692">

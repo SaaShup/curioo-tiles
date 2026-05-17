@@ -3,6 +3,8 @@ let currentTheme = "forest";
 let previewMap;
 let previewLayer;
 let isAuthenticated = false;
+let currentApiKeys = "";
+let apiKeysHidden = true;
 
 function goToLocation() {
   const lat = Number(document.getElementById("latInput").value);
@@ -36,6 +38,68 @@ function getThemeTileUrl(theme) {
   }
 
   return `/${theme}/18/{x}/{y}.png${cacheSuffix}`;
+}
+
+async function loadApiKeys() {
+  const apiKeyRow = document.getElementById("apiKeyRow");
+  const apiKeyInput = document.getElementById("apiKeyInput");
+  const apiKeyHint = document.getElementById("apiKeyHint");
+  const toggleButton = document.getElementById("toggleApiKeyBtn");
+
+  if (!apiKeyRow || !apiKeyInput || !toggleButton) {
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/tile-api-keys");
+    if (!res.ok) {
+      apiKeyInput.value = "";
+      apiKeyHint.textContent = "Unable to load keys";
+      apiKeyRow.style.display = "flex";
+      return;
+    }
+
+    const { keys = [] } = await res.json();
+    currentApiKeys = Array.isArray(keys) ? keys.join(", ") : "";
+    apiKeysHidden = true;
+    apiKeyInput.value = currentApiKeys ? "*".repeat(currentApiKeys.length) : "";
+    apiKeyInput.placeholder = currentApiKeys ? "" : "***********";
+    apiKeyInput.readOnly = true;
+    toggleButton.textContent = "Show";
+    apiKeyHint.textContent = currentApiKeys
+      ? `${keys.length} key${keys.length === 1 ? "" : "s"} configured`
+      : "No keys configured";
+    apiKeyRow.style.display = "flex";
+  } catch (err) {
+    currentApiKeys = "";
+    apiKeysHidden = true;
+    apiKeyInput.value = "";
+    apiKeyInput.placeholder = "***********";
+    apiKeyInput.readOnly = true;
+    toggleButton.textContent = "Show";
+    apiKeyHint.textContent = "Unable to load keys";
+    apiKeyRow.style.display = "flex";
+  }
+}
+
+function toggleApiKeyVisibility() {
+  const apiKeyInput = document.getElementById("apiKeyInput");
+  const toggleButton = document.getElementById("toggleApiKeyBtn");
+
+  if (!apiKeyInput || !toggleButton) {
+    return;
+  }
+
+  apiKeysHidden = !apiKeysHidden;
+  if (apiKeysHidden) {
+    apiKeyInput.value = currentApiKeys ? "*".repeat(currentApiKeys.length) : "";
+    apiKeyInput.placeholder = currentApiKeys ? "" : "***********";
+    toggleButton.textContent = "Show";
+  } else {
+    apiKeyInput.value = currentApiKeys;
+    apiKeyInput.placeholder = "";
+    toggleButton.textContent = "Hide";
+  }
 }
 
 function initPreviewMap() {
@@ -295,10 +359,13 @@ async function loadUser() {
     if (previewBtn) previewBtn.style.display = "";
     if (saveBtn) saveBtn.style.display = "";
     if (authHint) authHint.style.display = "none";
+    await loadApiKeys();
   } catch (err) {
     console.error(err);
   }
 }
+
+document.getElementById("toggleApiKeyBtn")?.addEventListener("click", toggleApiKeyVisibility);
 
 document.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
