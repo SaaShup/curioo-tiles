@@ -7,13 +7,31 @@ let currentApiKeys = "";
 let apiKeysHidden = true;
 let currentPreviewToken = null;
 
+function showNotification(message, type = "success") {
+  const notification = document.createElement("div");
+  notification.className = `notification ${type}`;
+  notification.textContent = message;
+
+  document.body.appendChild(notification);
+
+  setTimeout(() => {
+    notification.classList.add("show");
+  }, 10);
+
+  setTimeout(() => {
+    notification.classList.remove("show");
+    setTimeout(() => notification.remove(), 300);
+  }, 2000);
+}
+
 function goToLocation() {
   const lat = Number(document.getElementById("latInput").value);
   const lon = Number(document.getElementById("lonInput").value);
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-    document.getElementById("status").textContent = "Invalid latitude/longitude ❌";
+    showNotification("Invalid latitude/longitude ❌", "error");
     return;
   }
+  showNotification("Map moved 📍");
   localStorage.setItem("editor_lat", lat);
   localStorage.setItem("editor_lon", lon);
   previewMap.setView([lat, lon], 18);
@@ -32,18 +50,31 @@ function isCacheDisabled() {
 }
 
 function getThemeTileUrl(theme) {
-  let cacheSuffix = "";
-  if (isCacheDisabled()) {
-    cacheSuffix = `?v=${Date.now()}`;
-  } else if (currentPreviewToken) {
-    cacheSuffix = `?preview=${currentPreviewToken}`;
+  const params = new URLSearchParams();
+
+  if (currentApiKeys) {
+    const firstKey = currentApiKeys.split(",")[0].trim();
+
+    if (firstKey) {
+      params.set("key", firstKey);
+    }
   }
+
+  if (isCacheDisabled()) {
+    params.set("v", Date.now());
+  } else if (currentPreviewToken) {
+    params.set("preview", currentPreviewToken);
+  }
+
+  const query = params.toString()
+    ? `?${params.toString()}`
+    : "";
 
   if (theme === "default") {
-    return `/18/{x}/{y}.png${cacheSuffix}`;
+    return `/18/{x}/{y}.png${query}`;
   }
 
-  return `/${theme}/18/{x}/{y}.png${cacheSuffix}`;
+  return `/${theme}/18/{x}/{y}.png${query}`;
 }
 
 async function loadApiKeys() {
@@ -285,12 +316,7 @@ async function previewTheme() {
   });
 
   refreshPreviewMap();
-
-  document.getElementById("status").textContent = "Preview updated 👀";
-
-  setTimeout(() => {
-    document.getElementById("status").textContent = "";
-  }, 1500);
+  showNotification("Preview updated 👀");
 }
 
 async function saveTheme() {
@@ -304,14 +330,10 @@ async function saveTheme() {
     body: JSON.stringify(updated)
   });
 
-  document.getElementById("status").textContent = "Theme saved ✅";
+  showNotification("Theme saved ✅");
 
   await loadThemes();
   refreshPreviewMap();
-
-  setTimeout(() => {
-    document.getElementById("status").textContent = "";
-  }, 2000);
 }
 
 document.getElementById("themeSelect").addEventListener("change", async () => {
@@ -320,7 +342,10 @@ document.getElementById("themeSelect").addEventListener("change", async () => {
   renderEditor();
 });
 
-loadThemes().then(() => {
+Promise.all([
+  loadThemes(),
+  loadApiKeys()
+]).then(() => {
 
   const savedLat = localStorage.getItem("editor_lat");
   const savedLon = localStorage.getItem("editor_lon");
@@ -360,7 +385,7 @@ async function loadUser() {
       isAuthenticated = false;
       if (previewBtn) previewBtn.style.display = "none";
       if (saveBtn) saveBtn.style.display = "none";
-      if (authHint) authHint.style.display = "inline";
+      if (authHint) authHint.style.display = "inline-flex";
       return;
     }
 
@@ -402,9 +427,7 @@ document.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
     e.preventDefault();
     if (!isAuthenticated) {
-      const st = document.getElementById("status");
-      if (st) st.textContent = "Log in to save themes 🔒";
-      setTimeout(() => { if (st) st.textContent = ""; }, 1500);
+      showNotification("Log in to save themes 🔒");
       return;
     }
     saveTheme();
@@ -414,9 +437,7 @@ document.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
     e.preventDefault();
     if (!isAuthenticated) {
-      const st = document.getElementById("status");
-      if (st) st.textContent = "Log in to preview themes 🔒";
-      setTimeout(() => { if (st) st.textContent = ""; }, 1500);
+      showNotification("Log in to preview themes 🔒");
       return;
     }
     previewTheme();

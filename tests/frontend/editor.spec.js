@@ -286,7 +286,7 @@ test("authenticated preview button sends preview API and updates status", async 
     road: [0, 0, 0, 255],
   });
 
-  await expect(page.locator("#status")).toHaveText("Preview updated 👀");
+  await expect(page.getByText("Preview updated 👀")).toBeVisible();
 });
 
 test("authenticated save button sends save API and shows save status", async ({ page }) => {
@@ -319,7 +319,7 @@ test("authenticated save button sends save API and shows save status", async ({ 
     road: [0, 0, 0, 255],
   });
 
-  await expect(page.locator("#status")).toHaveText("Theme saved ✅");
+  await expect(page.getByText("Theme saved ✅")).toBeVisible();
 });
 
 test("footer contains version", async ({ page }) => {

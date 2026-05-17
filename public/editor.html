@@ -34,7 +34,7 @@
         <select id="themeSelect"></select>
         <button id="previewBtn" onclick="previewTheme()" class="btn secondary" style="display:none">Preview</button>
         <button id="saveBtn" onclick="saveTheme()" class="btn primary" style="display:none">Save theme</button>
-        <span id="authHint" class="auth-hint" style="display:none; margin-left:8px; color:#666;">Log in to preview/save</span>
+        <label id="authHint" class="auth-hint" style="display:none; margin-left:8px; color:#666;">Log in to preview/save</label>
         <label class="cache-toggle">
           <input id="cacheToggle" type="checkbox">
           Disable cache
@@ -69,6 +69,10 @@
       <div id="status" class="status"></div>
     </div>
   </div>
+    <footer>
+      Made for CuriooCity Explorer • A magical map adventure for kids • 
+      <span id="version"></span>
+    </footer>
   <script src="js/editor.js"></script>
 </body>
 </html>
