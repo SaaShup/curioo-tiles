@@ -2,6 +2,7 @@ let themes = {};
 let currentTheme = "forest";
 let previewMap;
 let previewLayer;
+let isAuthenticated = false;
 
 function goToLocation() {
   const lat = Number(document.getElementById("latInput").value);
@@ -250,34 +251,79 @@ async function loadUser() {
     const user = await res.json();
 
     const authBox = document.getElementById("authBox");
+    const previewBtn = document.getElementById("previewBtn");
+    const saveBtn = document.getElementById("saveBtn");
+    const authHint = document.getElementById("authHint");
 
     if (!user.authenticated) {
-      authBox.innerHTML = `
-            <a href="/api/login" class="btn secondary login-btn">
-              🔐 Login
-            </a>
-          `;
+      authBox.innerHTML = "";
+      const loginLink = document.createElement("a");
+      loginLink.href = "/api/login";
+      loginLink.className = "btn secondary login-btn";
+      loginLink.textContent = "🔐 Login";
+      authBox.appendChild(loginLink);
+      isAuthenticated = false;
+      if (previewBtn) previewBtn.style.display = "none";
+      if (saveBtn) saveBtn.style.display = "none";
+      if (authHint) authHint.style.display = "inline";
       return;
     }
 
-    authBox.innerHTML = `
-        <div class="userbox">
-            <div class="avatar-fallback">
-            ${user.initials || "U"}
-            </div>
+    authBox.innerHTML = "";
+    const userbox = document.createElement("div");
+    userbox.className = "userbox";
 
-            <span class="username">
-            ${user.name}
-            </span>
+    const avatar = document.createElement("div");
+    avatar.className = "avatar-fallback";
+    avatar.textContent = user.initials || "U";
 
-            <a href="/api/logout" class="btn secondary">
-            🚪 Logout
-            </a>
-        </div>
-        `;
+    const username = document.createElement("span");
+    username.className = "username";
+    username.textContent = user.name;
+
+    const logoutLink = document.createElement("a");
+    logoutLink.href = "/api/logout";
+    logoutLink.className = "btn secondary";
+    logoutLink.textContent = "🚪 Logout";
+
+    userbox.appendChild(avatar);
+    userbox.appendChild(username);
+    userbox.appendChild(logoutLink);
+
+    authBox.appendChild(userbox);
+    isAuthenticated = true;
+    if (previewBtn) previewBtn.style.display = "";
+    if (saveBtn) saveBtn.style.display = "";
+    if (authHint) authHint.style.display = "none";
   } catch (err) {
     console.error(err);
   }
 }
+
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+    e.preventDefault();
+    if (!isAuthenticated) {
+      const st = document.getElementById("status");
+      if (st) st.textContent = "Log in to save themes 🔒";
+      setTimeout(() => { if (st) st.textContent = ""; }, 1500);
+      return;
+    }
+    saveTheme();
+    return;
+  }
+
+  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+    e.preventDefault();
+    if (!isAuthenticated) {
+      const st = document.getElementById("status");
+      if (st) st.textContent = "Log in to preview themes 🔒";
+      setTimeout(() => { if (st) st.textContent = ""; }, 1500);
+      return;
+    }
+    previewTheme();
+    return;
+  }
+});
 
 loadUser();

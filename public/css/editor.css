@@ -108,6 +108,22 @@ select:focus {
   font-weight: 700;
 }
 
+.location-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.location-row input[type="number"] {
+  max-width: 130px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  font-weight: 700;
+}
+
 .userbox {
   display: flex;
   align-items: center;

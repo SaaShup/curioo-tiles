@@ -18,15 +18,15 @@ function createApiRouter(previewThemes) {
   });
 
   router.get("/api/login", keycloak.protect(), (req, res) => {
-    res.redirect("/editor.html");
+    res.redirect("/editor");
   });
 
   router.get("/api/logout", (req, res) => {
-    const redirectUri = encodeURIComponent(`${req.protocol}://${req.get("host")}/editor.html`);
+    const redirectUri = encodeURIComponent(`${req.protocol}://${req.get("host")}/editor`);
     const idToken = req.kauth?.grant?.id_token?.token;
 
     if (!idToken) {
-      req.session.destroy(() => res.redirect("/editor.html"));
+      req.session.destroy(() => res.redirect("/editor"));
       return;
     }
 

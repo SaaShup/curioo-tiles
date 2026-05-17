@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const path = require("path");
 const { PORT } = require("./lib/config");
@@ -11,6 +13,9 @@ const previewThemes = {};
 app.use(sessionMiddleware);
 app.set("trust proxy", true);
 app.use(keycloak.middleware());
+app.get(["/editor", "/editor/"], (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "editor.html"));
+});
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 
