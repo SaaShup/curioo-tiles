@@ -210,13 +210,31 @@ function renderEditor() {
             data-key="${key}">
 
           <input type="range" min="0" max="255" value="${rgba[3]}" data-alpha-key="${key}" class="alpha-slider" >
+
+          <span class="rgb">${rgba.join(", ")}</span>
         `;
 
-    row.querySelector("input").addEventListener("input", e => {
-      const newRgb = hexToRgb(e.target.value);
+    const colorInput = row.querySelector("input[type=color]");
+    const alphaInput = row.querySelector("input[type=range]");
+    const rgbLabel = row.querySelector(".rgb");
 
-      row.querySelector(".rgb").textContent = [...newRgb, rgba[3]].join(", ");
-    });
+    function updateRgbText(newAlpha = rgba[3]) {
+      if (!colorInput || !rgbLabel) return;
+      const newRgb = hexToRgb(colorInput.value);
+      rgbLabel.textContent = [...newRgb, Number(newAlpha)].join(", ");
+    }
+
+    if (colorInput) {
+      colorInput.addEventListener("input", () => {
+        updateRgbText(alphaInput?.value ?? rgba[3]);
+      });
+    }
+
+    if (alphaInput) {
+      alphaInput.addEventListener("input", () => {
+        updateRgbText(alphaInput.value);
+      });
+    }
 
     editor.appendChild(row);
   });
