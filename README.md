@@ -1,9 +1,12 @@
 # CuriooCity Tiles
 
-![version](https://img.shields.io/badge/version-1.8.0-blue)
-![node](https://img.shields.io/badge/node-24--alpine-green)
-![license](https://img.shields.io/badge/license-ISC-blue)
-![last-commit](https://img.shields.io/github/last-commit/your-org/your-repo)
+![Version](https://img.shields.io/github/package-json/v/SaaShup/curioo-tiles)
+![Node](https://img.shields.io/badge/node-24--alpine-green)
+![License](https://img.shields.io/github/license/SaaShup/curioo-tiles)
+![Last Commit](https://img.shields.io/github/last-commit/SaaShup/curioo-tiles)
+![Repo Size](https://img.shields.io/github/repo-size/SaaShup/curioo-tiles)
+![Top Language](https://img.shields.io/github/languages/top/SaaShup/curioo-tiles)
+![CI](https://github.com/SaaShup/curioo-tiles/actions/workflows/test.yml/badge.svg)
 
 🎨 Fast, local tile preview and theme editor.
 
