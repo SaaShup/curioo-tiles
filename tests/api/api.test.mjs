@@ -114,7 +114,7 @@ describe("Editor route alias", () => {
     const res = await request(app).get("/editor");
 
     expect(res.statusCode).toBe(200);
-    expect(res.text).toContain("CuriooCity Theme Editor");
+    expect(res.text).toContain("Tile Editor");
   });
 });
 describe("Auth helper utilities", () => {

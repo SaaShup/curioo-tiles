@@ -48,8 +48,8 @@ async function setupAuthenticatedEditor(page) {
 test("editor page loads", async ({ page }) => {
   await gotoEditor(page);
 
-  await expect(page).toHaveTitle(/CuriooCity Theme Editor/);
-  await expect(page.getByText("CuriooCity Theme Editor")).toBeVisible();
+  await expect(page).toHaveTitle("Tile Editor");
+  await expect(page.getByText("Tile Editor")).toBeVisible();
   await expect(page.locator("#themeSelect")).toBeVisible();
   await expect(page.getByText("Log in to preview/save")).toBeVisible();
 });
@@ -198,6 +198,7 @@ test("editor shows login button when not authenticated", async ({ page }) => {
   await expect(page.getByRole("link", { name: /login/i })).toBeVisible();
   await expect(page.getByRole("button", { name: "Preview" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Save theme" })).toHaveCount(0);
+  await expect(page.getByLabel(/Disable cache/i)).toBeHidden();
   await expect(page.getByText("Log in to preview/save")).toBeVisible();
 });
 
@@ -209,6 +210,7 @@ test("editor shows preview and save buttons when authenticated", async ({ page }
   await expect(page.getByRole("button", { name: "Preview", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Save theme", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: /logout/i })).toBeVisible();
+  await expect(page.getByLabel(/Disable cache/i)).toBeVisible();
 });
 
 test("authenticated editor shows the hidden tile API key input", async ({ page }) => {
@@ -323,16 +325,21 @@ test("authenticated save button sends save API and shows save status", async ({ 
   await expect(page.getByText("Theme saved ✅")).toBeVisible();
 });
 
-test("footer contains version", async ({ page }) => {
-  await page.goto("http://localhost:3000");
+[
+  ["home", "http://localhost:3000"],
+  ["editor", "http://localhost:3000/editor"],
+].forEach(([name, url]) => {
+  test(`footer contains version on ${name} page`, async ({ page }) => {
+    await page.goto(url);
 
-  const version = page.locator("#version");
+    const version = page.locator("#version");
 
-  await expect(version).toBeVisible();
+    await expect(version).toBeVisible();
 
-  const text = await version.textContent();
+    const text = await version.textContent();
 
-  expect(text).toMatch(/^v\d+\.\d+\.\d+/);
+    expect(text).toMatch(/^v\d+\.\d+\.\d+/);
+  });
 });
 
 test("toggle pickers button hides and shows the editor", async ({ page }) => {
@@ -353,4 +360,41 @@ test("toggle pickers button hides and shows the editor", async ({ page }) => {
 
   await expect(editor).toBeHidden();
   await expect(toggleButton).toHaveText("Show pickers");
+});
+
+test("map fullscreen control is visible", async ({ page }) => {
+  await page.goto("http://localhost:3000/editor");
+
+  const fullscreenButton = page.locator("a[title*='Full Screen']")
+
+  await expect(fullscreenButton).toBeVisible();
+});
+
+test("map can enter fullscreen mode", async ({ page }) => {
+  await page.goto("http://localhost:3000/editor");
+
+  const fullscreenButton =  page.locator("a[title*='Full Screen']").first();
+
+  await expect(fullscreenButton).toBeVisible();
+  await fullscreenButton.click();
+
+  await expect(page.locator("#mapPreview")).toBeVisible();
+
+  const sizes = await page.evaluate(() => {
+    const map = document.getElementById("mapPreview");
+    const parent = map.parentElement;
+
+    const mapRect = map.getBoundingClientRect();
+    const parentRect = parent.getBoundingClientRect();
+
+    return {
+      mapWidth: Math.round(mapRect.width),
+      mapHeight: Math.round(mapRect.height),
+      parentWidth: Math.round(parentRect.width),
+      parentHeight: Math.round(parentRect.height),
+    };
+  });
+
+  expect(sizes.mapWidth).toBeGreaterThanOrEqual(sizes.parentWidth - 5);
+  expect(sizes.mapHeight).toBeGreaterThanOrEqual(sizes.parentHeight - 5);
 });

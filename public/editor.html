@@ -2,10 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>CuriooCity Theme Editor</title>
+  <title>Tile Editor</title>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.fullscreen@1.6.0/Control.FullScreen.css" integrity="weDCJ80JNrg6W2Dha8CBrQyz5PZVPOZ39Lw7vWOzm65zqKvZZfSq/3rR77RY5TWm" crossorigin="anonymous"></link>
+  <script src="https://unpkg.com/leaflet.fullscreen@1.6.0/Control.FullScreen.js" integrity="Kigx+fLsY5TWX5hU/QUxy7tQh2bUzeIuoHUZTj2O056ByEtnhW6gi9ib8h6r5yb8" crossorigin="anonymous"></script>
   <link rel="stylesheet" href="css/main.css" />
   <link rel="stylesheet" href="css/editor.css" />
 </head>
@@ -15,7 +17,7 @@
     <div class="section">
     <div class="header-row">
       <a class="eyebrow" href="/">
-        🗺️ CuriooCity Explorer Tile Gateway
+        🗺️ Tile theme index
       </a>
 
       <div id="authBox">
@@ -25,7 +27,7 @@
       </div>
     </div>
 
-      <h1>🎨 CuriooCity Theme Editor</h1>
+      <h1>🎨 Tile Editor</h1>
 
       <p class="lead">Edit map colors, preview them, then save your theme.</p>
 
@@ -34,8 +36,8 @@
         <select id="themeSelect"></select>
         <button id="previewBtn" onclick="previewTheme()" class="btn secondary" style="display:none">Preview</button>
         <button id="saveBtn" onclick="saveTheme()" class="btn primary" style="display:none">Save theme</button>
-        <span id="authHint" class="auth-hint" style="display:none; margin-left:8px; color:#666;">Log in to preview/save</span>
-        <label class="cache-toggle">
+        <span id="authHint" class="auth-hint" style="margin-left:8px; color:#666;align-items: center;">Log in to preview/save</span>
+        <label class="cache-toggle" style="display:none;">
           <input id="cacheToggle" type="checkbox">
           Disable cache
         </label>
@@ -78,6 +80,7 @@
       Made for CuriooCity Explorer • A magical map adventure for kids • 
       <span id="version"></span>
     </footer>
+  <script src="js/main.js"></script>
   <script src="js/editor.js"></script>
 </body>
 </html>

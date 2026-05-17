@@ -10,6 +10,9 @@
 
 🎨 Fast, local tile preview and theme editor.
 
+CuriooCity Tile Editor was created to build custom map styles for the game world.
+It allows creators to design colorful and unique environments that make exploration more magical for players.
+
 Features
 - Edit map theme colors and preview tiles instantly
 - Preview themes without saving, then persist changes
