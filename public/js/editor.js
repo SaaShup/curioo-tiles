@@ -374,6 +374,7 @@ async function loadUser() {
     const previewBtn = document.getElementById("previewBtn");
     const saveBtn = document.getElementById("saveBtn");
     const authHint = document.getElementById("authHint");
+    const cacheToggleLabel = document.querySelector(".cache-toggle");
 
     if (!user.authenticated) {
       authBox.innerHTML = "";
@@ -386,6 +387,7 @@ async function loadUser() {
       if (previewBtn) previewBtn.style.display = "none";
       if (saveBtn) saveBtn.style.display = "none";
       if (authHint) authHint.style.display = "inline-flex";
+      if (cacheToggleLabel) cacheToggleLabel.style.display = "none";
       return;
     }
 
@@ -415,6 +417,7 @@ async function loadUser() {
     if (previewBtn) previewBtn.style.display = "";
     if (saveBtn) saveBtn.style.display = "";
     if (authHint) authHint.style.display = "none";
+    if (cacheToggleLabel) cacheToggleLabel.style.display = "";
     await loadApiKeys();
   } catch (err) {
     console.error(err);

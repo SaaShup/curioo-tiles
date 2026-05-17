@@ -198,6 +198,7 @@ test("editor shows login button when not authenticated", async ({ page }) => {
   await expect(page.getByRole("link", { name: /login/i })).toBeVisible();
   await expect(page.getByRole("button", { name: "Preview" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Save theme" })).toHaveCount(0);
+  await expect(page.getByLabel(/Disable cache/i)).toBeHidden();
   await expect(page.getByText("Log in to preview/save")).toBeVisible();
 });
 
@@ -209,6 +210,7 @@ test("editor shows preview and save buttons when authenticated", async ({ page }
   await expect(page.getByRole("button", { name: "Preview", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Save theme", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: /logout/i })).toBeVisible();
+  await expect(page.getByLabel(/Disable cache/i)).toBeVisible();
 });
 
 test("authenticated editor shows the hidden tile API key input", async ({ page }) => {
