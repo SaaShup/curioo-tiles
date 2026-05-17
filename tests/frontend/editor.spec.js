@@ -57,6 +57,7 @@ test("editor page loads", async ({ page }) => {
 test("theme select changes editor colors", async ({ page }) => {
   await gotoEditor(page);
 
+  await page.getByRole("button", { name: "Show pickers" }).click();
   await page.selectOption("#themeSelect", "space");
 
   await expect(page.locator("#themeSelect")).toHaveValue("space");
@@ -205,8 +206,8 @@ test("editor shows preview and save buttons when authenticated", async ({ page }
 
   await gotoEditor(page);
 
-  await expect(page.getByRole("button", { name: "Preview" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Save theme" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Preview", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Save theme", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: /logout/i })).toBeVisible();
 });
 
@@ -228,12 +229,12 @@ test("authenticated editor shows the hidden tile API key input", async ({ page }
   await expect(page.locator("#apiKeyRow")).toBeVisible();
   await expect(page.locator("#apiKeyInput")).toHaveAttribute("type", "text");
   await expect(page.locator("#apiKeyInput")).toHaveValue("*********");
-  await expect(page.getByRole("button", { name: "Show" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Show", exact: true })).toBeVisible();
 
-  await page.getByRole("button", { name: "Show" }).click();
+  await page.getByRole("button", { name: "Show", exact: true }).click();
 
   await expect(page.locator("#apiKeyInput")).toHaveValue("secret123");
-  await expect(page.getByRole("button", { name: "Hide" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Hide", exact: true })).toBeVisible();
 });
 
 test("authenticated editor shows an empty tile API key input when no keys are configured", async ({ page }) => {
@@ -310,7 +311,7 @@ test("authenticated save button sends save API and shows save status", async ({ 
 
   await gotoEditor(page);
 
-  await page.getByRole("button", { name: "Save theme" }).click();
+  await page.getByRole("button", { name: "Save theme", exact: true }).click();
 
   const saveRequest = await saveRequestPromise;
 
@@ -332,4 +333,24 @@ test("footer contains version", async ({ page }) => {
   const text = await version.textContent();
 
   expect(text).toMatch(/^v\d+\.\d+\.\d+/);
+});
+
+test("toggle pickers button hides and shows the editor", async ({ page }) => {
+  await page.goto("http://localhost:3000/editor");
+
+  const editor = page.locator("#editor");
+  const toggleButton = page.locator("#togglePickersBtn");
+
+  await expect(editor).toBeHidden();
+  await expect(toggleButton).toHaveText("Show pickers");
+
+  await toggleButton.click();
+
+  await expect(editor).toBeVisible();
+  await expect(toggleButton).toHaveText("Hide pickers");
+
+  await toggleButton.click();
+
+  await expect(editor).toBeHidden();
+  await expect(toggleButton).toHaveText("Show pickers");
 });

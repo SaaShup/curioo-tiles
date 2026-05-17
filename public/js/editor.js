@@ -444,4 +444,23 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+let pickersHidden = true;
+
+function togglePickers() {
+  const editor = document.getElementById("editor");
+  const button = document.getElementById("togglePickersBtn");
+
+  const hidden = editor.style.display === "none";
+
+  editor.style.display = hidden ? "grid" : "none";
+
+  button.textContent = hidden
+    ? "Hide pickers"
+    : "Show pickers";
+}
+
+document
+  .getElementById("togglePickersBtn")
+  ?.addEventListener("click", togglePickers);
+
 loadUser();
