@@ -5,6 +5,7 @@ let previewLayer;
 let isAuthenticated = false;
 let currentApiKeys = "";
 let apiKeysHidden = true;
+let currentPreviewToken = null;
 
 function goToLocation() {
   const lat = Number(document.getElementById("latInput").value);
@@ -31,7 +32,12 @@ function isCacheDisabled() {
 }
 
 function getThemeTileUrl(theme) {
-  const cacheSuffix = isCacheDisabled() ? `?v=${Date.now()}` : "";
+  let cacheSuffix = "";
+  if (isCacheDisabled()) {
+    cacheSuffix = `?v=${Date.now()}`;
+  } else if (currentPreviewToken) {
+    cacheSuffix = `?preview=${currentPreviewToken}`;
+  }
 
   if (theme === "default") {
     return `/18/{x}/{y}.png${cacheSuffix}`;
@@ -262,6 +268,7 @@ async function previewTheme() {
   const updated = getEditorTheme();
 
   themes[currentTheme] = updated;
+  currentPreviewToken = Date.now();
 
   await fetch(`/api/preview-theme/${currentTheme}`, {
     method: "POST",

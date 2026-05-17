@@ -37,6 +37,60 @@ test("theme select loads options from API", async ({ page }) => {
   await expect(page.locator("#themeSelect option").nth(1)).toHaveText("desert");
 });
 
+test("color picker updates rgb text and does not trigger preview automatically", async ({ page }) => {
+  await page.route("**/api/me", route =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        authenticated: true,
+        email: "tester@example.com",
+        name: "Test User",
+        initials: "TU",
+      }),
+    })
+  );
+
+  await page.route("**/api/themes", route =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        forest: { background: [255, 255, 255, 255], road: [0, 0, 0, 255] },
+      }),
+    })
+  );
+
+  let previewRequestCount = 0;
+  await page.route("**/api/preview-theme/*", route => {
+    if (route.request().method() === "POST") {
+      previewRequestCount += 1;
+    }
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true, preview: "forest" }),
+    });
+  });
+
+  await page.goto("http://localhost:3000/editor");
+
+  const colorInput = page.locator('input[type="color"]').first();
+  const rgbLabel = page.locator('.color-row .rgb').first();
+
+  await colorInput.evaluate((el) => {
+    el.value = '#000000';
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+
+  await expect(rgbLabel).toHaveText('0, 0, 0, 255');
+  await page.waitForTimeout(200);
+  expect(previewRequestCount).toBe(0);
+
+  await page.getByRole('button', { name: 'Preview' }).click();
+  expect(previewRequestCount).toBe(1);
+});
+
 test("logout restores unauthenticated editor state", async ({ page }) => {
   let meCalls = 0;
 
