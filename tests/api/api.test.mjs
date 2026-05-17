@@ -117,7 +117,6 @@ describe("Editor route alias", () => {
     expect(res.text).toContain("CuriooCity Theme Editor");
   });
 });
-
 describe("Auth helper utilities", () => {
   const originalEnv = process.env.ALLOWED_EDITOR_EMAILS;
 
@@ -129,42 +128,39 @@ describe("Auth helper utilities", () => {
     process.env.ALLOWED_EDITOR_EMAILS = originalEnv;
   });
 
-  it("blocks requests without an email", () => {
-    const req = createAuthReq();
+  it.each([
+    [
+      "blocks requests without an email",
+      undefined,
+      {
+        ok: false,
+        error: "No email found in Keycloak token",
+      },
+    ],
+    [
+      "blocks requests for disallowed email addresses",
+      "blocked@example.com",
+      {
+        ok: false,
+        error: "Email not allowed: blocked@example.com",
+      },
+    ],
+  ])("%s", (_title, email, expectedBody) => {
     const res = createMockRes();
     const next = vi.fn();
 
-    auth.requireAllowedEditorEmail(req, res, next);
+    auth.requireAllowedEditorEmail(createAuthReq(email), res, next);
 
     expect(res.statusCode).toBe(403);
-    expect(res.body).toEqual({
-      ok: false,
-      error: "No email found in Keycloak token",
-    });
-    expect(next).not.toHaveBeenCalled();
-  });
-
-  it("blocks requests for disallowed email addresses", () => {
-    const req = createAuthReq("blocked@example.com");
-    const res = createMockRes();
-    const next = vi.fn();
-
-    auth.requireAllowedEditorEmail(req, res, next);
-
-    expect(res.statusCode).toBe(403);
-    expect(res.body).toEqual({
-      ok: false,
-      error: "Email not allowed: blocked@example.com",
-    });
+    expect(res.body).toEqual(expectedBody);
     expect(next).not.toHaveBeenCalled();
   });
 
   it("allows requests when the email is in the allowed list", () => {
-    const req = createAuthReq("allowed@example.com");
     const res = createMockRes();
     const next = vi.fn();
 
-    auth.requireAllowedEditorEmail(req, res, next);
+    auth.requireAllowedEditorEmail(createAuthReq("allowed@example.com"), res, next);
 
     expect(next).toHaveBeenCalledOnce();
     expect(res.statusCode).toBeUndefined();
