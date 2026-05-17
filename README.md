@@ -12,43 +12,40 @@ Features
 - Preview themes without saving, then persist changes
 - Supports Keycloak-based auth for editor actions
 
-Quick start
+## Quick start
 
 ```
-sudo docker run -p 3000:3000 -e OVERPASS_URL=https://overpass1.curioo.city/api/interpreter saashup/curioo-tiles:latest
+sudo docker run -p 3000:3000 \
+  -e OVERPASS_URL=https://overpass1.curioo.city/api/interpreter \
+  saashup/curioo-tiles:latest
 ```
 
-Start From source code
+## Start From source code
 
-1. Install dependencies
+### Install dependencies
 
 ```bash
 npm install
 ```
 
-2. Create a `.env` (see Configuration below), then run locally:
+### Test
+- API unit tests: `npm run test:api` (uses `vitest`)
+- Frontend end-to-end: `npm run test:frontend` (uses Playwright)
+- Full test suite: `npm run test`
 
-```bash
-npm run dev
-```
+### Create a `.env` then run locally:
 
-3. Open the editor in your browser:
-
-- http://localhost:3000/editor
-- http://localhost:3000/editor
-
-Configuration (.env)
 Create a `.env` file in the project root to set local defaults. The server uses `dotenv` when running locally.
 
 Example `.env`:
 
 ```env
-# Server Configuration
+# Standard server Configuration
 NODE_ENV=production
 PORT=3000
 DEBUG=false
 
-# Tile setup
+# Tile server setup
 THEME=forest
 OVERPASS_URL=https://${OVERPASS_URL}
 
@@ -59,6 +56,7 @@ OVERPASS_URL=https://${OVERPASS_URL}
 TILE_API_KEYS=["secret123"]
 
 # Keycloak / auth defaults
+# Authentication may work on any provider but not tested yet
 ALLOWED_EDITOR_EMAILS=""
 KEYCLOAK_REALM="${REALM}"
 KEYCLOAK_URL="${KEYCLOAK_URL}"
@@ -72,7 +70,20 @@ Notes
 - Values in `.env` are used by `npm run dev`. You can still override any value with environment variables (for example when running Docker with `-e`).
 - The built-in `dev` script now reads from `.env` instead of hardcoding `THEME` and `OVERPASS_URL`.
 
-Docker
+### Run
+
+```bash
+npm run dev
+```
+
+### Open the editor in your browser:
+
+- http://localhost:3000/editor
+- http://localhost:3000/editor
+
+
+## Using Docker
+
 Build an image:
 
 ```bash
@@ -82,7 +93,9 @@ sudo docker build -t saashup/curioo-tiles .
 Run with custom Overpass URL (example):
 
 ```bash
-sudo docker run -p 3000:3000 -e OVERPASS_URL=https://overpass1.curioo.city/api/interpreter saashup/curioo-tiles:latest
+sudo docker run -p 3000:3000 \
+  -e OVERPASS_URL=https://overpass1.curioo.city/api/interpreter \
+  saashup/curioo-tiles:latest
 ```
 
 Run with API key protection enabled:
@@ -94,12 +107,7 @@ sudo docker run -p 3000:3000 \
   saashup/curioo-tiles:latest
 ```
 
-Testing
-- API unit tests: `npm run test:api` (uses `vitest`)
-- Frontend end-to-end: `npm run test:frontend` (uses Playwright)
-- Full test suite: `npm run test`
-
-Monitoring
+## Monitoring
 
 This service exposes Prometheus-compatible metrics at the `/metrics` endpoint (exported using `prom-client`). Metrics include default NodeJS process metrics plus these application-specific metrics:
 
