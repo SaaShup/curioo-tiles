@@ -1,7 +1,7 @@
 require("dotenv").config();
 
 const express = require("express");
-const path = require("path");
+const path = require("node:path");
 const { PORT } = require("./lib/config");
 const { sessionMiddleware, keycloak } = require("./lib/auth");
 const { createApiRouter } = require("./routes/api");
@@ -9,6 +9,11 @@ const { createTileRouter } = require("./routes/tiles");
 
 const app = express();
 const previewThemes = {};
+
+app.use((req, res, next) => {
+  res.setHeader("X-Powered-By", "TileServer");
+  next();
+});
 
 app.use(sessionMiddleware);
 app.set("trust proxy", true);
