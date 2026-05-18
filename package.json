@@ -6,10 +6,12 @@
   "scripts": {
     "start": "node server.js",
     "dev": "dotenv -e .env -- rm -rf cache && node server.js",
-    "test:api": "NODE_ENV=test vitest run",
+    "test:unit": "NODE_ENV=test vitest run --config vitest.unit.config.mjs",
+    "test:api-setup": "NODE_ENV=test vitest run --config vitest.api.config.mjs",
+    "test:api": "dotenv -e .env-dev -- start-server-and-test start http://localhost:3000 \"npm run test:api-setup\"",
     "test:frontend": "playwright test",
-    "test:all": "npm run test:api && npm run test:frontend",
-    "test": "dotenv -e .env-dev -- start-server-and-test start http://localhost:3000 \"npm run test:all\""
+    "test:all": "npm run test:unit && npm run test:api && npm run test:frontend",
+    "test": "npm run test:all"
   },
   "keywords": [],
   "author": "",
