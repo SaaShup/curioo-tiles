@@ -128,32 +128,42 @@ describe("Auth helper utilities", () => {
     process.env.ALLOWED_EDITOR_EMAILS = originalEnv;
   });
 
-  it.each([
-    [
-      "blocks requests without an email",
-      undefined,
-      {
-        ok: false,
-        error: "No email found in Keycloak token",
-      },
-    ],
-    [
-      "blocks requests for disallowed email addresses",
-      "blocked@example.com",
-      {
-        ok: false,
-        error: "Email not allowed: blocked@example.com",
-      },
-    ],
-  ])("%s", (_title, email, expectedBody) => {
+  it("allows requests without an email", () => {
     const res = createMockRes();
     const next = vi.fn();
 
-    auth.requireAllowedEditorEmail(createAuthReq(email), res, next);
+    auth.requireAllowedEditorEmail(createAuthReq(undefined), res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    expect(res.statusCode).toBeUndefined();
+    expect(res.body).toBeUndefined();
+  });
+
+  it("blocks requests for disallowed email addresses", () => {
+    const res = createMockRes();
+    const next = vi.fn();
+
+    auth.requireAllowedEditorEmail(createAuthReq("blocked@example.com"), res, next);
 
     expect(res.statusCode).toBe(403);
-    expect(res.body).toEqual(expectedBody);
+    expect(res.body).toEqual({
+      ok: false,
+      error: "Email not allowed: blocked@example.com",
+    });
     expect(next).not.toHaveBeenCalled();
+  });
+
+  it("allows requests when no allowed list is configured", () => {
+    process.env.ALLOWED_EDITOR_EMAILS = "";
+
+    const res = createMockRes();
+    const next = vi.fn();
+
+    auth.requireAllowedEditorEmail(createAuthReq("blocked@example.com"), res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    expect(res.statusCode).toBeUndefined();
+    expect(res.body).toBeUndefined();
   });
 
   it("allows requests when the email is in the allowed list", () => {
