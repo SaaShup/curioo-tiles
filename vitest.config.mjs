@@ -5,6 +5,10 @@ export default defineConfig({
     include: ["tests/api/**/*.test.mjs"],
     exclude: ["tests/frontend/**", "node_modules/**"],
     environment: "node",
-    globals: false
+    globals: false,
+    coverage: {
+      enabled: true,
+      reporter: ["text", "lcovonly"]
+    }
   }
 });
