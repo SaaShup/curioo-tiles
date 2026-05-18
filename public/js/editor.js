@@ -377,22 +377,6 @@ document.getElementById("themeSelect").addEventListener("change", async () => {
   renderEditor();
 });
 
-/*loadThemes().then(() => {
-  const savedLat = localStorage.getItem("editor_lat");
-  const savedLon = localStorage.getItem("editor_lon");
-
-  if (savedLat && savedLon) {
-    document.getElementById("latInput").value = savedLat;
-    document.getElementById("lonInput").value = savedLon;
-  }
-
-  initPreviewMap();
-
-  if (savedLat && savedLon) {
-    previewMap.setView([Number(savedLat), Number(savedLon)], 18);
-  }
-});*/
-
 async function initEditor() {
   await loadUser();
   await loadThemes();

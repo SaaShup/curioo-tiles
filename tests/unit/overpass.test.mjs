@@ -54,7 +54,7 @@ describe("overpass", () => {
     });
 
     it("fetchOverpass sends a POST request and parses JSON", async () => {
-        global.fetch = vi.fn().mockResolvedValue({
+        globalThis.fetch = vi.fn().mockResolvedValue({
             ok: true,
             text: async () => JSON.stringify({
                 elements: [{
@@ -80,9 +80,9 @@ describe("overpass", () => {
             }],
         });
 
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(globalThis.fetch).toHaveBeenCalledTimes(1);
 
-        const [url, options] = global.fetch.mock.calls[0];
+        const [url, options] = globalThis.fetch.mock.calls[0];
 
         expect(url).toBe(`${OVERPASS_URL}/api/interpreter`);
         expect(options.method).toBe("POST");
@@ -100,7 +100,7 @@ describe("overpass", () => {
     it("fetchOverpass throws when Overpass returns an error", async () => {
         vi.spyOn(console, "error").mockImplementation(() => {});
 
-        global.fetch = vi.fn().mockResolvedValue({
+        globalThis.fetch = vi.fn().mockResolvedValue({
             ok: false,
             status: 500,
             text: async () => "Overpass failed",
@@ -137,12 +137,12 @@ describe("overpass", () => {
             zlib.brotliCompressSync(Buffer.from(JSON.stringify(cachedData)))
         );
 
-        global.fetch = vi.fn();
+        globalThis.fetch = vi.fn();
 
         const data = await getOverpassData(z, x, y);
 
         expect(data).toEqual(cachedData);
-        expect(global.fetch).not.toHaveBeenCalled();
+        expect(globalThis.fetch).not.toHaveBeenCalled();
     });
 
     it("getOverpassData fetches data and writes brotli cache on miss", async () => {
@@ -153,7 +153,7 @@ describe("overpass", () => {
             }],
         };
 
-        global.fetch = vi.fn().mockResolvedValue({
+        globalThis.fetch = vi.fn().mockResolvedValue({
             ok: true,
             text: async () => JSON.stringify(responseData),
         });
@@ -161,7 +161,7 @@ describe("overpass", () => {
         const data = await getOverpassData(z, x, y);
 
         expect(data).toEqual(responseData);
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(globalThis.fetch).toHaveBeenCalledTimes(1);
 
         const zone = getZoneFromTile(z, x, y);
         const file = getCachePathForZone(zone);
@@ -181,7 +181,7 @@ describe("overpass", () => {
         vi.spyOn(console, "error").mockImplementation(() => {});
 
         try {
-            global.fetch = vi.fn().mockResolvedValue({
+            globalThis.fetch = vi.fn().mockResolvedValue({
             ok: false,
             status: 503,
             text: async () => "Service unavailable",
@@ -219,7 +219,7 @@ describe("overpass", () => {
         elements: [{ id: 789, type: "way" }],
         };
 
-        global.fetch = vi.fn().mockResolvedValue({
+        globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         text: async () => JSON.stringify(responseData),
         });
@@ -236,7 +236,7 @@ describe("overpass", () => {
 
         expect(first).toEqual(responseData);
         expect(second).toEqual(responseData);
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(globalThis.fetch).toHaveBeenCalledTimes(1);
     } finally {
         vi.useRealTimers();
     }

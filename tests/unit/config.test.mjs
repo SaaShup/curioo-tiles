@@ -45,7 +45,7 @@ describe("config", () => {
     expect(config.KEYCLOAK_REALM).toBe("curioo");
     expect(config.DEFAULT_THEME).toBe("forest");
     expect(config.ZONE_SIZE_DEGREES).toBe(0.02);
-    expect(config.OVERPASS_URL).toBe("http://overpass");
+    expect(config.OVERPASS_URL).toBe("https://overpass");
     expect(config.TILE_API_KEYS).toEqual([]);
   });
 
