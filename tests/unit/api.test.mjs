@@ -72,7 +72,12 @@ function loadApiRouter() {
   };
 }
 
-function createApp(previewThemes = {}, middleware) {
+function createApp(options = {}) {
+  const {
+    middleware,
+    previewThemes = {},
+  } = options;
+
   const { createApiRouter, ...mocks } = loadApiRouter();
 
   const app = express();
@@ -138,15 +143,17 @@ describe("api router", () => {
   });
 
   it("GET /api/logout redirects to Keycloak logout when id token exists", async () => {
-    const { app } = createApp({}, (req, res, next) => {
-      req.kauth = {
-        grant: {
-          id_token: {
-            token: "id-token-123",
+    const { app } = createApp({
+      middleware: (req, res, next) => {
+        req.kauth = {
+          grant: {
+            id_token: {
+              token: "id-token-123",
+            },
           },
-        },
-      };
-      next();
+        };
+        next();
+      }
     });
 
     const res = await request(app)
@@ -171,18 +178,20 @@ describe("api router", () => {
   });
 
   it("GET /api/me returns authenticated user", async () => {
-    const { app } = createApp({}, (req, res, next) => {
-      req.kauth = {
-        grant: {
-          access_token: {
-            content: {
-              email: "user@example.com",
-              name: "Curioo User",
+    const { app } = createApp({
+      middleware: (req, res, next) => {
+          req.kauth = {
+            grant: {
+              access_token: {
+                content: {
+                  email: "user@example.com",
+                  name: "Curioo User",
+                },
+              },
             },
-          },
-        },
-      };
-      next();
+          };
+          next();
+        }
     });
 
     const res = await request(app).get("/api/me");
@@ -227,7 +236,9 @@ describe("api router", () => {
       },
     };
 
-    const { app, mocks } = createApp(previewThemes);
+    const { app, mocks } = createApp({
+      previewThemes,
+    });
 
     const res = await request(app)
       .put("/api/themes/Forest")
@@ -252,7 +263,9 @@ describe("api router", () => {
 
   it("POST /api/preview-theme/:theme stores preview theme", async () => {
     const previewThemes = {};
-    const { app } = createApp(previewThemes);
+    const { app } = createApp({
+      previewThemes,
+    });
 
     const res = await request(app)
       .post("/api/preview-theme/Forest")
@@ -278,7 +291,9 @@ describe("api router", () => {
       },
     };
 
-    const { app } = createApp(previewThemes);
+    const { app } = createApp({
+      previewThemes,
+    });
 
     const res = await request(app).delete("/api/preview-theme/Forest");
 
