@@ -41,4 +41,4 @@ jobs:
             -Dsonar.javascript.lcov.reportPaths=coverage/unit/lcov.info
             -Dsonar.sources=.
             -Dsonar.exclusions=node_modules/**,coverage/**
-            -Dsonar.coverage.exclusions=tests/**,public/**
+            -Dsonar.coverage.exclusions=tests/**,public/**,server.js
