@@ -1,6 +1,6 @@
 {
   "name": "tiles",
-  "version": "2.3.1",
+  "version": "2.3.2",
   "description": "Lightweight PNG tile server with real-time map theme editor",
   "author": "SaaShup - CuriooCity",
   "main": "server.js",
@@ -14,7 +14,14 @@
     "test:all": "npm run test:unit && npm run test:api && npm run test:frontend",
     "test": "npm run test:all"
   },
-  "keywords": ["tiles", "osm", "map", "png", "overpass", "leaflet"],
+  "keywords": [
+    "tiles",
+    "osm",
+    "map",
+    "png",
+    "overpass",
+    "leaflet"
+  ],
   "license": "MIT",
   "type": "commonjs",
   "dependencies": {
