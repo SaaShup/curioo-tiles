@@ -139,12 +139,12 @@ A ready-to-import Grafana dashboard is included for monitoring CuriooCity Tiles 
 
 The dashboard provides:
 
-Tile request rate monitoring
-Total tile requests
-HTTP status distribution
-Overpass cache statistics
-4xx / 5xx error monitoring
-Successful request tracking
+- Tile request rate monitoring
+- Total tile requests
+- HTTP status distribution
+- Overpass cache statistics
+- 4xx / 5xx error monitoring
+- Successful request tracking
 
 Import the dashboard JSON file into Grafana. 
 You can [Download Grafana Dashboard here](public/grafana-dashboard.json)

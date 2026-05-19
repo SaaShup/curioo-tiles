@@ -44,6 +44,15 @@ async function expectInvalidCoordinates(url) {
   expect(res.text).toContain("Invalid tile coordinates");
 }
 
+describe("Health API", () => {
+  it("should return healthy status", async () => {
+    const res = await request(app).get("/healthz");
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ ok: true });
+  });
+});
+
 describe("Metrics API", () => {
   it("should expose Prometheus metrics", async () => {
     const res = await request(app).get("/metrics");
