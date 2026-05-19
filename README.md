@@ -10,8 +10,8 @@
 
 🎨 Fast, local tile preview and theme editor.
 
-CuriooCity Tile Editor was created to build custom map styles for the game world.
-It allows creators to design colorful and unique environments that make exploration more magical for players.
+CuriooCity Tile Editor was created to build and serve custom map styles for the game world.
+On top of [Overpass API](https://wiki.openstreetmap.org/wiki/Overpass_API), it allows creators to design colorful and unique environments that make exploration more magical for players.
 
 Features
 - Edit map theme colors and preview tiles instantly
