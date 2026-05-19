@@ -32,6 +32,7 @@ sudo docker run -p 3000:3000 \
 
 ```bash
 npm install
+npx playwright install --with-deps
 ```
 
 ### Test
