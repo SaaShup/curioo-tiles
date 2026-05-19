@@ -15,7 +15,7 @@ ENV KEYCLOAK_CLIENT_SECRET=""
 ENV KEYCLOAK_CONFIDENTIAL_PORT=0
 
 COPY package*.json ./
-RUN npm install --production
+RUN npm ci --ignore-scripts --production
 
 COPY . .
 
