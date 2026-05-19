@@ -38,7 +38,7 @@ jobs:
           args: >
             -Dsonar.projectKey=SaaShup_curioo-tiles
             -Dsonar.organization=saashup
-            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.javascript.lcov.reportPaths=coverage/unit/lcov.info
             -Dsonar.sources=.
             -Dsonar.exclusions=node_modules/**,coverage/**
             -Dsonar.coverage.exclusions=tests/**,public/**
