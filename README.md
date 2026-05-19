@@ -6,7 +6,7 @@
 ![Last Commit](https://img.shields.io/github/last-commit/SaaShup/curioo-tiles)
 ![Repo Size](https://img.shields.io/github/repo-size/SaaShup/curioo-tiles)
 ![Top Language](https://img.shields.io/github/languages/top/SaaShup/curioo-tiles)
-![CI](https://github.com/SaaShup/curioo-tiles/actions/workflows/test.yml/badge.svg)
+![CI](https://github.com/SaaShup/curioo-tiles/actions/workflows/tests.yml/badge.svg)
 
 🎨 Fast, local tile preview and theme editor.
 
