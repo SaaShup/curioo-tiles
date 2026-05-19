@@ -4,6 +4,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV DEBUG=false
+ENV OVERPASS_URL="http://overpass"
 ENV TILE_API_KEYS=""
 ENV ALLOWED_EDITOR_EMAILS=""
 ENV KEYCLOAK_REALM=""
@@ -14,7 +15,7 @@ ENV KEYCLOAK_CLIENT_SECRET=""
 ENV KEYCLOAK_CONFIDENTIAL_PORT=0
 
 COPY package*.json ./
-RUN npm install --production
+RUN npm ci --ignore-scripts --production
 
 COPY . .
 

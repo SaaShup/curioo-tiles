@@ -299,13 +299,38 @@ function getEditorTheme() {
     ];
   });
 
+  if (Object.keys(updated).length === 0 && themes[currentTheme]) {
+    const copy = {};
+    Object.entries(themes[currentTheme]).forEach(([k, v]) => {
+      copy[k] = Array.isArray(v) ? [...v] : v;
+    });
+    return copy;
+  }
+
   return updated;
 }
 
-async function previewTheme() {
-  const updated = getEditorTheme();
+async function waitForEditorInputs(timeout = 500) {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    if (document.querySelectorAll("input[type=color]").length > 0) return;
+    await new Promise(r => setTimeout(r, 50));
+  }
+}
 
-  themes[currentTheme] = updated;
+async function previewTheme() {
+  let updated = getEditorTheme();
+
+  if (Object.keys(updated).length === 0) {
+    await waitForEditorInputs(500);
+    updated = getEditorTheme();
+  }
+
+  const payload = Object.keys(updated).length === 0 && themes[currentTheme]
+    ? themes[currentTheme]
+    : updated;
+
+  themes[currentTheme] = payload;
   currentPreviewToken = Date.now();
 
   await fetch(`/api/preview-theme/${currentTheme}`, {
@@ -313,7 +338,7 @@ async function previewTheme() {
     headers: {
       "Content-Type": "application/json"
     },
-    body: JSON.stringify(updated)
+    body: JSON.stringify(payload)
   });
 
   refreshPreviewMap();
@@ -321,14 +346,23 @@ async function previewTheme() {
 }
 
 async function saveTheme() {
-  const updated = getEditorTheme();
+  let updated = getEditorTheme();
+
+  if (Object.keys(updated).length === 0) {
+    await waitForEditorInputs(500);
+    updated = getEditorTheme();
+  }
+
+  const payload = Object.keys(updated).length === 0 && themes[currentTheme]
+    ? themes[currentTheme]
+    : updated;
 
   await fetch(`/api/themes/${currentTheme}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json"
     },
-    body: JSON.stringify(updated)
+    body: JSON.stringify(payload)
   });
 
   showNotification("Theme saved ✅");
@@ -343,7 +377,10 @@ document.getElementById("themeSelect").addEventListener("change", async () => {
   renderEditor();
 });
 
-loadThemes().then(() => {
+async function initEditor() {
+  await loadUser();
+  await loadThemes();
+
   const savedLat = localStorage.getItem("editor_lat");
   const savedLon = localStorage.getItem("editor_lon");
 
@@ -357,7 +394,7 @@ loadThemes().then(() => {
   if (savedLat && savedLon) {
     previewMap.setView([Number(savedLat), Number(savedLon)], 18);
   }
-});
+}
 
 async function loadUser() {
   try {
@@ -460,4 +497,4 @@ document
   .getElementById("togglePickersBtn")
   ?.addEventListener("click", togglePickers);
 
-loadUser();
+initEditor();

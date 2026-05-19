@@ -21,7 +21,7 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci --ignore-scripts
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
@@ -36,9 +36,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: >
-            -Dsonar.projectKey=SSaaShup_curioo-tiles
+            -Dsonar.projectKey=SaaShup_curioo-tiles
             -Dsonar.organization=saashup
-            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.javascript.lcov.reportPaths=coverage/unit/lcov.info
             -Dsonar.sources=.
             -Dsonar.exclusions=node_modules/**,coverage/**
             -Dsonar.coverage.exclusions=tests/**,public/**
