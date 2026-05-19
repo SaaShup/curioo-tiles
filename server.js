@@ -18,6 +18,8 @@ app.use((req, res, next) => {
 app.use(sessionMiddleware);
 app.set("trust proxy", true);
 app.use(keycloak.middleware());
+
+app.get("/healthz", (req, res) => res.json({ ok: true }));
 app.get(["/editor", "/editor/"], (req, res) => {
   res.sendFile(path.join(__dirname, "public", "editor.html"));
 });

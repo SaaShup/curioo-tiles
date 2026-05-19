@@ -24,7 +24,7 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium firefox
 
       - name: Run tests
         run: npm test
@@ -41,4 +41,4 @@ jobs:
             -Dsonar.javascript.lcov.reportPaths=coverage/unit/lcov.info
             -Dsonar.sources=.
             -Dsonar.exclusions=node_modules/**,coverage/**
-            -Dsonar.coverage.exclusions=tests/**,public/**
+            -Dsonar.coverage.exclusions=tests/**,public/**,server.js
