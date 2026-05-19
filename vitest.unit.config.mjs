@@ -7,7 +7,7 @@ export default defineConfig({
     globals: false,
     coverage: {
       enabled: true,
-      reporter: ["text", "lcovonly"],
+      reporter: ["text", "lcovonly", "html"],
       reportsDirectory: "./coverage/unit",
     }
   }

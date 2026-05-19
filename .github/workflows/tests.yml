@@ -36,7 +36,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: >
-            -Dsonar.projectKey=SSaaShup_curioo-tiles
+            -Dsonar.projectKey=SaaShup_curioo-tiles
             -Dsonar.organization=saashup
             -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
             -Dsonar.sources=.
