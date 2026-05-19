@@ -44,6 +44,13 @@ async function expectInvalidCoordinates(url) {
   expect(res.text).toContain("Invalid tile coordinates");
 }
 
+async function expectUnsupportedZoom(url) {
+  const res = await request(app).get(url);
+
+  expect(res.statusCode).toBe(404);
+  expect(res.text).toContain("Only zoom 18 supported");
+}
+
 describe("Health API", () => {
   it("should return healthy status", async () => {
     const res = await request(app).get("/healthz");
@@ -80,10 +87,11 @@ describe("Tile API", () => {
     expect(res.body.forest).toBeDefined();
   });
 
-  it("rejects invalid zoom", async () => {
-    const res = await request(app).get("/17/135329/89901.png");
-
-    expect(res.statusCode).toBe(404);
+  it.each([
+    ["/17/135329/89901.png"],
+    ["/forest/17/135329/89901.png"],
+  ])("rejects non-18 zoom tile request %s", async url => {
+    await expectUnsupportedZoom(url);
   });
 
   it("rejects invalid coordinates", async () => {

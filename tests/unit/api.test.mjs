@@ -205,6 +205,61 @@ describe("api router", () => {
     });
   });
 
+  it.each([
+    [
+      "preferred username",
+      {
+        email: "user@example.com",
+        preferred_username: "editor",
+      },
+      {
+        email: "user@example.com",
+        name: "editor",
+        initials: "E",
+      },
+    ],
+    [
+      "email",
+      {
+        email: "user@example.com",
+      },
+      {
+        email: "user@example.com",
+        name: "user@example.com",
+        initials: "U",
+      },
+    ],
+    [
+      "generic user",
+      {},
+      {
+        name: "User",
+        initials: "U",
+      },
+    ],
+  ])("GET /api/me uses %s when name is missing", async (_label, token, expected) => {
+    const { app } = createApp({
+      middleware: (req, res, next) => {
+        req.kauth = {
+          grant: {
+            access_token: {
+              content: token,
+            },
+          },
+        };
+        next();
+      },
+    });
+
+    const res = await request(app).get("/api/me");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      authenticated: true,
+      ...expected,
+    });
+  });
+
   it("GET /api/tile-api-keys returns configured keys", async () => {
     const { app } = createApp();
 
