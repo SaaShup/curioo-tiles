@@ -85,8 +85,6 @@ npm run dev
 ### Open the editor in your browser:
 
 - http://localhost:3000/editor
-- http://localhost:3000/editor
-
 
 ## Using Docker
 
