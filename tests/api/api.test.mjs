@@ -72,6 +72,16 @@ describe("Metrics API", () => {
 });
 
 describe("Tile API", () => {
+  const originalTileApiKeys = process.env.TILE_API_KEYS;
+
+  beforeEach(() => {
+    process.env.TILE_API_KEYS = "";
+  });
+
+  afterEach(() => {
+    process.env.TILE_API_KEYS = originalTileApiKeys;
+  });
+
   it("should return app version", async () => {
     const res = await request(app).get("/api/version");
 
@@ -87,10 +97,17 @@ describe("Tile API", () => {
     expect(res.body.forest).toBeDefined();
   });
 
+  it("returns public config", async () => {
+    const res = await request(app).get("/api/config");
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ tileZoomRange: [18, 18] });
+  });
+
   it.each([
     ["/17/135329/89901.png"],
     ["/forest/17/135329/89901.png"],
-  ])("rejects non-18 zoom tile request %s", async url => {
+  ])("rejects zoom outside the default tile range %s", async url => {
     await expectUnsupportedZoom(url);
   });
 

@@ -55,6 +55,8 @@ DEBUG=false
 # Tile server setup
 THEME=forest
 OVERPASS_URL=https://${OVERPASS_URL}
+# Inclusive tile zoom range as [from,to]. Defaults to [18,18].
+TILE_ZOOM_RANGE=[18,18]
 
 # Tile API key protection
 # Leave TILE_API_KEYS empty to allow public tile requests.
@@ -100,6 +102,15 @@ Run with custom Overpass URL (example):
 ```bash
 sudo docker run -p 3000:3000 \
   -e OVERPASS_URL=https://overpass1.curioo.city/api/interpreter \
+  saashup/curioo-tiles:latest
+```
+
+Run with a custom tile zoom range:
+
+```bash
+sudo docker run -p 3000:3000 \
+  -e OVERPASS_URL=https://overpass1.curioo.city/api/interpreter \
+  -e TILE_ZOOM_RANGE='[16,19]' \
   saashup/curioo-tiles:latest
 ```
 

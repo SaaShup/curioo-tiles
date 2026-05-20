@@ -2,7 +2,7 @@ const express = require("express");
 const packageJson = require("../package.json");
 const { loadThemes, saveThemes } = require("../lib/themes");
 const { client } = require("../lib/metrics");
-const { KEYCLOAK_URL, KEYCLOAK_REALM, getTileApiKeys } = require("../lib/config");
+const { KEYCLOAK_URL, KEYCLOAK_REALM, TILE_ZOOM_RANGE, getTileApiKeys } = require("../lib/config");
 const { keycloak, requireAllowedEditorEmail, makeInitials } = require("../lib/auth");
 
 function createApiRouter(previewThemes) {
@@ -15,6 +15,10 @@ function createApiRouter(previewThemes) {
 
   router.get("/api/version", (req, res) => {
     res.json({ version: packageJson.version });
+  });
+
+  router.get("/api/config", (req, res) => {
+    res.json({ tileZoomRange: TILE_ZOOM_RANGE });
   });
 
   router.get("/api/login", keycloak.protect(), (req, res) => {

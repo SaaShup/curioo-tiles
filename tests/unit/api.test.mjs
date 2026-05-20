@@ -45,6 +45,7 @@ function loadApiRouter() {
   mockModule("../../lib/config.js", {
     KEYCLOAK_URL: "https://sso.example.com",
     KEYCLOAK_REALM: "curioo",
+    TILE_ZOOM_RANGE: [16, 19],
     getTileApiKeys: vi.fn(() => ["key-1", "key-2"]),
   });
 
@@ -122,6 +123,17 @@ describe("api router", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.version).toBeDefined();
+  });
+
+  it("GET /api/config returns public tile configuration", async () => {
+    const { app } = createApp();
+
+    const res = await request(app).get("/api/config");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      tileZoomRange: [16, 19],
+    });
   });
 
   it("GET /api/login redirects to editor", async () => {

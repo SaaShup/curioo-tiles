@@ -36,11 +36,22 @@ async function mockThemes(page, payload = defaultThemes) {
   );
 }
 
+async function mockConfig(page, payload = { tileZoomRange: [18, 18] }) {
+  await page.route("**/api/config", route =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(payload),
+    })
+  );
+}
+
 async function gotoEditor(page) {
   await page.goto(EDITOR_URL);
 }
 
 async function setupAuthenticatedEditor(page) {
+  await mockConfig(page);
   await mockApiMe(page);
   await mockThemes(page);
 }
@@ -65,6 +76,7 @@ test("theme select changes editor colors", async ({ page }) => {
 });
 
 test("theme select loads options from API", async ({ page }) => {
+  await mockConfig(page);
   await mockThemes(page, {
     forest: {
       background: [255, 255, 255, 255],
@@ -178,6 +190,23 @@ test("cache toggle adds cache-busting param to tile requests", async ({ page }) 
   const request = await cacheRequest;
 
   expect(request.url()).toContain("?v=");
+});
+
+test("editor uses configured tile zoom range", async ({ page }) => {
+  await mockConfig(page, { tileZoomRange: [16, 19] });
+  await mockApiMe(page);
+  await mockThemes(page);
+
+  const tileRequest = page.waitForRequest(request =>
+    request.url().includes("/forest/19/") &&
+    request.url().includes("?v=")
+  );
+
+  await gotoEditor(page);
+
+  const request = await tileRequest;
+
+  expect(request.url()).toContain("/forest/19/");
 });
 
 test("location input moves map", async ({ page }) => {

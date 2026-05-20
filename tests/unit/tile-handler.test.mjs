@@ -9,6 +9,7 @@ const startTimer = vi.fn();
 const inc = vi.fn();
 const end = vi.fn();
 let defaultThemeName = "forest";
+let tileZoomRange = [18, 18];
 
 function mockModule(modulePath, exports) {
   const resolved = require.resolve(modulePath);
@@ -29,6 +30,7 @@ function loadTileHandler() {
 
   mockModule("../../lib/config.js", {
     DEFAULT_THEME: defaultThemeName,
+    TILE_ZOOM_RANGE: tileZoomRange,
   });
 
   mockModule("../../lib/metrics.js", {
@@ -61,6 +63,7 @@ describe("tile-handler", () => {
 
     startTimer.mockReturnValue(end);
     defaultThemeName = "forest";
+    tileZoomRange = [18, 18];
 
     loadThemes.mockReturnValue({
       forest: { name: "forest" },
@@ -120,6 +123,22 @@ describe("tile-handler", () => {
     expect(inc).not.toHaveBeenCalled();
   });
 
+  it("returns 404 when zoom is outside a configured range", async () => {
+    tileZoomRange = [16, 18];
+    const { createTileHandler } = loadTileHandler();
+    const res = createRes();
+    const handler = createTileHandler({});
+
+    await handler(createReq("19", "1", "2"), res);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.send).toHaveBeenCalledWith("Only zooms 16-18 supported");
+    expect(loadThemes).not.toHaveBeenCalled();
+    expect(startTimer).not.toHaveBeenCalled();
+    expect(generateTile).not.toHaveBeenCalled();
+    expect(inc).not.toHaveBeenCalled();
+  });
+
   it("renders a png tile with cache headers", async () => {
     const buffer = Buffer.from("fake-png");
     generateTile.mockResolvedValue(buffer);
@@ -142,6 +161,21 @@ describe("tile-handler", () => {
     );
     expect(res.send).toHaveBeenCalledWith(buffer);
     expect(end).toHaveBeenCalled();
+  });
+
+  it("renders a tile when zoom is inside the configured range", async () => {
+    tileZoomRange = [16, 19];
+    const buffer = Buffer.from("fake-png");
+    generateTile.mockResolvedValue(buffer);
+
+    const { createTileHandler } = loadTileHandler();
+    const res = createRes();
+    const handler = createTileHandler({});
+
+    await handler(createReq("19", "1", "2"), res);
+
+    expect(generateTile).toHaveBeenCalledWith(19, 1, 2, { name: "forest" });
+    expect(res.send).toHaveBeenCalledWith(buffer);
   });
 
   it("uses a preview theme when one is provided", async () => {

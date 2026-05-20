@@ -6,6 +6,15 @@ let isAuthenticated = false;
 let currentApiKeys = "";
 let apiKeysHidden = true;
 let currentPreviewToken = null;
+let tileZoomRange = [18, 18];
+
+function getMinTileZoom() {
+  return tileZoomRange[0];
+}
+
+function getMaxTileZoom() {
+  return tileZoomRange[1];
+}
 
 function showNotification(message, type = "success") {
   const notification = document.createElement("div");
@@ -34,7 +43,7 @@ function goToLocation() {
   showNotification("Map moved 📍");
   localStorage.setItem("editor_lat", lat);
   localStorage.setItem("editor_lon", lon);
-  previewMap.setView([lat, lon], 18);
+  previewMap.setView([lat, lon], getMaxTileZoom());
 
   setTimeout(() => {
     previewMap.invalidateSize();
@@ -71,10 +80,30 @@ function getThemeTileUrl(theme) {
     : "";
 
   if (theme === "default") {
-    return `/18/{x}/{y}.png${query}`;
+    return `/{z}/{x}/{y}.png${query}`;
   }
 
-  return `/${theme}/18/{x}/{y}.png${query}`;
+  return `/${theme}/{z}/{x}/{y}.png${query}`;
+}
+
+async function loadConfig() {
+  try {
+    const res = await fetch("/api/config");
+    if (!res.ok) return;
+
+    const config = await res.json();
+    if (
+      Array.isArray(config.tileZoomRange) &&
+      config.tileZoomRange.length === 2 &&
+      Number.isInteger(config.tileZoomRange[0]) &&
+      Number.isInteger(config.tileZoomRange[1]) &&
+      config.tileZoomRange[1] >= config.tileZoomRange[0]
+    ) {
+      tileZoomRange = config.tileZoomRange;
+    }
+  } catch (err) {
+    console.error("Failed to load config:", err);
+  }
 }
 
 async function loadApiKeys() {
@@ -148,18 +177,18 @@ function toggleApiKeyVisibility() {
 function initPreviewMap() {
   previewMap = L.map("mapPreview", {
     center: [48.692, 6.184],
-    zoom: 18,
-    minZoom: 18,
-    maxZoom: 18,
+    zoom: getMaxTileZoom(),
+    minZoom: getMinTileZoom(),
+    maxZoom: getMaxTileZoom(),
     zoomControl: true,
     fullscreenControl: true
   });
 
   previewLayer = L.tileLayer(getThemeTileUrl(currentTheme), {
     tileSize: 256,
-    minZoom: 18,
-    maxZoom: 18,
-    maxNativeZoom: 18,
+    minZoom: getMinTileZoom(),
+    maxZoom: getMaxTileZoom(),
+    maxNativeZoom: getMaxTileZoom(),
     attribution: "© CuriooCity"
   }).addTo(previewMap);
 }
@@ -179,9 +208,9 @@ function refreshPreviewMap() {
 
   previewLayer = L.tileLayer(getThemeTileUrl(currentTheme), {
     tileSize: 256,
-    minZoom: 18,
-    maxZoom: 18,
-    maxNativeZoom: 18,
+    minZoom: getMinTileZoom(),
+    maxZoom: getMaxTileZoom(),
+    maxNativeZoom: getMaxTileZoom(),
     attribution: "© CuriooCity"
   }).addTo(previewMap);
 
@@ -378,6 +407,7 @@ document.getElementById("themeSelect").addEventListener("change", async () => {
 });
 
 async function initEditor() {
+  await loadConfig();
   await loadUser();
   await loadThemes();
 
@@ -392,7 +422,7 @@ async function initEditor() {
   initPreviewMap();
 
   if (savedLat && savedLon) {
-    previewMap.setView([Number(savedLat), Number(savedLon)], 18);
+    previewMap.setView([Number(savedLat), Number(savedLon)], getMaxTileZoom());
   }
 }
 
