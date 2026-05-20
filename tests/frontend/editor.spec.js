@@ -15,6 +15,9 @@ const defaultThemes = {
     road: [0, 0, 0, 255],
   },
 };
+const defaultConfig = {
+  tileZoomRange: [18, 18],
+};
 
 const tinyPng = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lZ0Z5wAAAABJRU5ErkJggg==",
@@ -42,7 +45,7 @@ async function mockThemes(page, payload = defaultThemes) {
   );
 }
 
-async function mockConfig(page, payload = { tileZoomRange: [18, 18] }) {
+async function mockConfig(page, payload = defaultConfig) {
   let config = payload;
 
   await page.route("**/api/config/tile-zoom-range", async route => {
