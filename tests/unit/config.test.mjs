@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import crypto from "node:crypto";
 
 const require = createRequire(import.meta.url);
 
@@ -23,7 +24,7 @@ function loadConfig(env = {}) {
   if (!process.env.TILE_RUNTIME_CONFIG_FILE) {
     process.env.TILE_RUNTIME_CONFIG_FILE = path.join(
       os.tmpdir(),
-      `tiles-config-missing-${process.pid}-${Date.now()}-${Math.random()}.json`
+      `tiles-config-missing-${process.pid}-${Date.now()}-${crypto.randomUUID()}.json`
     );
   }
 

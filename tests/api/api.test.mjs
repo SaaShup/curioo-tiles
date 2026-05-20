@@ -60,7 +60,7 @@ async function expectUnsupportedZoom(url) {
   const res = await request(app).get(url);
 
   expect(res.statusCode).toBe(404);
-  expect(res.text).toContain("Only zoom 18 supported");
+  expect(res.text).toContain("Unsupported zoom level");
 }
 
 describe("Health API", () => {

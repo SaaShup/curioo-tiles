@@ -116,7 +116,7 @@ describe("tile-handler", () => {
     await handler(createReq("17", "1", "2"), res);
 
     expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.send).toHaveBeenCalledWith("Only zoom 18 supported");
+    expect(res.send).toHaveBeenCalledWith("Unsupported zoom level");
     expect(loadThemes).not.toHaveBeenCalled();
     expect(startTimer).not.toHaveBeenCalled();
     expect(generateTile).not.toHaveBeenCalled();
@@ -174,12 +174,12 @@ describe("tile-handler", () => {
     const zoom17Res = createRes();
     await handler(createReq("17", "1", "2"), zoom17Res);
     expect(zoom17Res.status).toHaveBeenCalledWith(404);
-    expect(zoom17Res.send).toHaveBeenCalledWith("Only zooms 18-19 supported");
+    expect(zoom17Res.send).toHaveBeenCalledWith("Unsupported zoom level");
 
     const zoom20Res = createRes();
     await handler(createReq("20", "1", "2"), zoom20Res);
     expect(zoom20Res.status).toHaveBeenCalledWith(404);
-    expect(zoom20Res.send).toHaveBeenCalledWith("Only zooms 18-19 supported");
+    expect(zoom20Res.send).toHaveBeenCalledWith("Unsupported zoom level");
 
     expect(loadThemes).not.toHaveBeenCalled();
     expect(startTimer).not.toHaveBeenCalled();
