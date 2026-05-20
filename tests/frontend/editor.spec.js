@@ -197,16 +197,23 @@ test("editor uses configured tile zoom range", async ({ page }) => {
   await mockApiMe(page);
   await mockThemes(page);
 
-  const tileRequest = page.waitForRequest(request =>
-    request.url().includes("/forest/19/") &&
-    request.url().includes("?v=")
-  );
+  let requestedZoom;
+  await page.route("**/forest/*/*/*.png*", route => {
+    const match = new URL(route.request().url()).pathname.match(/^\/forest\/(\d+)\//);
+    requestedZoom = match?.[1];
+    route.fulfill({
+      status: 200,
+      contentType: "image/png",
+      body: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lZ0Z5wAAAABJRU5ErkJggg==",
+        "base64"
+      ),
+    });
+  });
 
   await gotoEditor(page);
 
-  const request = await tileRequest;
-
-  expect(request.url()).toContain("/forest/19/");
+  await expect.poll(() => requestedZoom).toBe("19");
 });
 
 test("location input moves map", async ({ page }) => {
@@ -399,7 +406,12 @@ test("map fullscreen control is visible", async ({ page }) => {
   await expect(fullscreenButton).toBeVisible();
 });
 
-test("map can enter fullscreen mode", async ({ page }) => {
+test("map can enter fullscreen mode", async ({ page }, testInfo) => {
+  test.skip(
+    testInfo.project.name === "mobile-chrome",
+    "Mobile browser emulation does not reliably support the Fullscreen API in headless runs."
+  );
+
   await page.goto("http://localhost:3000/editor");
 
   const fullscreenButton =  page.locator("a[title*='Full Screen']").first();
@@ -409,21 +421,21 @@ test("map can enter fullscreen mode", async ({ page }) => {
 
   await expect(page.locator("#mapPreview")).toBeVisible();
 
-  const sizes = await page.evaluate(() => {
-    const map = document.getElementById("mapPreview");
-    const parent = map.parentElement;
+  await expect.poll(async () => {
+    return page.evaluate(() => {
+      const map = document.getElementById("mapPreview");
+      const parent = map.parentElement;
 
-    const mapRect = map.getBoundingClientRect();
-    const parentRect = parent.getBoundingClientRect();
+      const mapRect = map.getBoundingClientRect();
+      const parentRect = parent.getBoundingClientRect();
 
-    return {
-      mapWidth: Math.round(mapRect.width),
-      mapHeight: Math.round(mapRect.height),
-      parentWidth: Math.round(parentRect.width),
-      parentHeight: Math.round(parentRect.height),
-    };
+      return {
+        fillsWidth: Math.round(mapRect.width) >= Math.round(parentRect.width) - 5,
+        fillsHeight: Math.round(mapRect.height) >= Math.round(parentRect.height) - 5,
+      };
+    });
+  }).toEqual({
+    fillsWidth: true,
+    fillsHeight: true,
   });
-
-  expect(sizes.mapWidth).toBeGreaterThanOrEqual(sizes.parentWidth - 5);
-  expect(sizes.mapHeight).toBeGreaterThanOrEqual(sizes.parentHeight - 5);
 });

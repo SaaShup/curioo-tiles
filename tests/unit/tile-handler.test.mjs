@@ -123,22 +123,6 @@ describe("tile-handler", () => {
     expect(inc).not.toHaveBeenCalled();
   });
 
-  it("returns 404 when zoom is outside a configured range", async () => {
-    tileZoomRange = [16, 18];
-    const { createTileHandler } = loadTileHandler();
-    const res = createRes();
-    const handler = createTileHandler({});
-
-    await handler(createReq("19", "1", "2"), res);
-
-    expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.send).toHaveBeenCalledWith("Only zooms 16-18 supported");
-    expect(loadThemes).not.toHaveBeenCalled();
-    expect(startTimer).not.toHaveBeenCalled();
-    expect(generateTile).not.toHaveBeenCalled();
-    expect(inc).not.toHaveBeenCalled();
-  });
-
   it("renders a png tile with cache headers", async () => {
     const buffer = Buffer.from("fake-png");
     generateTile.mockResolvedValue(buffer);
@@ -163,19 +147,44 @@ describe("tile-handler", () => {
     expect(end).toHaveBeenCalled();
   });
 
-  it("renders a tile when zoom is inside the configured range", async () => {
-    tileZoomRange = [16, 19];
+  it("supports both endpoints of a configured zoom range and rejects outside zooms", async () => {
+    tileZoomRange = [18, 19];
     const buffer = Buffer.from("fake-png");
     generateTile.mockResolvedValue(buffer);
 
     const { createTileHandler } = loadTileHandler();
-    const res = createRes();
     const handler = createTileHandler({});
 
-    await handler(createReq("19", "1", "2"), res);
+    const zoom18Res = createRes();
+    await handler(createReq("18", "1", "2"), zoom18Res);
+    expect(generateTile).toHaveBeenCalledWith(18, 1, 2, { name: "forest" });
+    expect(zoom18Res.send).toHaveBeenCalledWith(buffer);
 
+    vi.clearAllMocks();
+    startTimer.mockReturnValue(end);
+    generateTile.mockResolvedValue(buffer);
+
+    const zoom19Res = createRes();
+    await handler(createReq("19", "1", "2"), zoom19Res);
     expect(generateTile).toHaveBeenCalledWith(19, 1, 2, { name: "forest" });
-    expect(res.send).toHaveBeenCalledWith(buffer);
+    expect(zoom19Res.send).toHaveBeenCalledWith(buffer);
+
+    vi.clearAllMocks();
+
+    const zoom17Res = createRes();
+    await handler(createReq("17", "1", "2"), zoom17Res);
+    expect(zoom17Res.status).toHaveBeenCalledWith(404);
+    expect(zoom17Res.send).toHaveBeenCalledWith("Only zooms 18-19 supported");
+
+    const zoom20Res = createRes();
+    await handler(createReq("20", "1", "2"), zoom20Res);
+    expect(zoom20Res.status).toHaveBeenCalledWith(404);
+    expect(zoom20Res.send).toHaveBeenCalledWith("Only zooms 18-19 supported");
+
+    expect(loadThemes).not.toHaveBeenCalled();
+    expect(startTimer).not.toHaveBeenCalled();
+    expect(generateTile).not.toHaveBeenCalled();
+    expect(inc).not.toHaveBeenCalled();
   });
 
   it("uses a preview theme when one is provided", async () => {
