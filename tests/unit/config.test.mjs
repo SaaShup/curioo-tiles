@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createRequire } from "node:module";
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 const require = createRequire(import.meta.url);
@@ -14,9 +16,16 @@ function loadConfig(env = {}) {
   delete process.env.THEME;
   delete process.env.OVERPASS_URL;
   delete process.env.TILE_ZOOM_RANGE;
+  delete process.env.TILE_RUNTIME_CONFIG_FILE;
   delete process.env.TILE_API_KEYS;
 
   Object.assign(process.env, env);
+  if (!process.env.TILE_RUNTIME_CONFIG_FILE) {
+    process.env.TILE_RUNTIME_CONFIG_FILE = path.join(
+      os.tmpdir(),
+      `tiles-config-missing-${process.pid}-${Date.now()}-${Math.random()}.json`
+    );
+  }
 
   delete require.cache[require.resolve("../../lib/config.js")];
   const config = require("../../lib/config.js");
@@ -27,12 +36,16 @@ function loadConfig(env = {}) {
 }
 
 describe("config", () => {
+  let tempDir;
+
   beforeEach(() => {
     vi.restoreAllMocks();
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "tiles-config-test-"));
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
   it("loads default values", () => {
@@ -85,6 +98,47 @@ describe("config", () => {
     ['["18","19"]'],
   ])("rejects invalid TILE_ZOOM_RANGE %s", (range) => {
     expect(() => loadConfig({ TILE_ZOOM_RANGE: range })).toThrow(
+      "TILE_ZOOM_RANGE must"
+    );
+  });
+
+  it("updates the runtime tile zoom range", () => {
+    const runtimeConfigFile = path.join(tempDir, "runtime-config.json");
+    const config = loadConfig({
+      TILE_ZOOM_RANGE: "[18,18]",
+      TILE_RUNTIME_CONFIG_FILE: runtimeConfigFile,
+    });
+
+    expect(config.getTileZoomRange()).toEqual([18, 18]);
+    expect(config.setTileZoomRange([18, 20])).toEqual([18, 20]);
+    expect(config.TILE_ZOOM_RANGE).toEqual([18, 20]);
+    expect(config.getTileZoomRange()).toEqual([18, 20]);
+    expect(JSON.parse(fs.readFileSync(runtimeConfigFile, "utf8"))).toEqual({
+      tileZoomRange: [18, 20],
+    });
+  });
+
+  it("loads persisted tile zoom range before environment default", () => {
+    const runtimeConfigFile = path.join(tempDir, "runtime-config.json");
+    fs.writeFileSync(runtimeConfigFile, JSON.stringify({
+      tileZoomRange: [17, 19],
+    }));
+
+    const config = loadConfig({
+      TILE_ZOOM_RANGE: "[18,18]",
+      TILE_RUNTIME_CONFIG_FILE: runtimeConfigFile,
+    });
+
+    expect(config.getTileZoomRange()).toEqual([17, 19]);
+  });
+
+  it("rejects invalid runtime tile zoom ranges", () => {
+    const config = loadConfig();
+
+    expect(() => config.setTileZoomRange([20, 18])).toThrow(
+      "TILE_ZOOM_RANGE must"
+    );
+    expect(() => config.setTileZoomRange(undefined)).toThrow(
       "TILE_ZOOM_RANGE must"
     );
   });

@@ -27,6 +27,7 @@ function loadApiRouter() {
   const saveThemes = vi.fn();
 
   const metrics = vi.fn(async () => "fake_metrics 1\n");
+  let tileZoomRange = [16, 19];
 
   mockModule("../../lib/themes.js", {
     loadThemes,
@@ -45,7 +46,23 @@ function loadApiRouter() {
   mockModule("../../lib/config.js", {
     KEYCLOAK_URL: "https://sso.example.com",
     KEYCLOAK_REALM: "curioo",
-    TILE_ZOOM_RANGE: [16, 19],
+    getTileZoomRange: vi.fn(() => tileZoomRange),
+    setTileZoomRange: vi.fn((range) => {
+      if (
+        !Array.isArray(range) ||
+        range.length !== 2 ||
+        !Number.isInteger(range[0]) ||
+        !Number.isInteger(range[1]) ||
+        range[0] < 3 ||
+        range[1] > 20 ||
+        range[1] < range[0]
+      ) {
+        throw new Error("TILE_ZOOM_RANGE must be [from,to] with integers where from >= 3, to <= 20, and to >= from");
+      }
+
+      tileZoomRange = range;
+      return tileZoomRange;
+    }),
     getTileApiKeys: vi.fn(() => ["key-1", "key-2"]),
   });
 
@@ -134,6 +151,37 @@ describe("api router", () => {
     expect(res.body).toEqual({
       tileZoomRange: [16, 19],
     });
+  });
+
+  it("PUT /api/config/tile-zoom-range updates public tile configuration", async () => {
+    const { app } = createApp();
+
+    const res = await request(app)
+      .put("/api/config/tile-zoom-range")
+      .send({ tileZoomRange: [18, 20] });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      ok: true,
+      tileZoomRange: [18, 20],
+    });
+
+    const configRes = await request(app).get("/api/config");
+    expect(configRes.body).toEqual({
+      tileZoomRange: [18, 20],
+    });
+  });
+
+  it("PUT /api/config/tile-zoom-range rejects invalid ranges", async () => {
+    const { app } = createApp();
+
+    const res = await request(app)
+      .put("/api/config/tile-zoom-range")
+      .send({ tileZoomRange: [20, 18] });
+
+    expect(res.status).toBe(400);
+    expect(res.body.ok).toBe(false);
+    expect(res.body.error).toContain("TILE_ZOOM_RANGE must");
   });
 
   it("GET /api/login redirects to editor", async () => {

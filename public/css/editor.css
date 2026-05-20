@@ -168,12 +168,44 @@ select:focus {
   border: 1px solid var(--border);
 }
 
+.location-controls,
+.zoom-range-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .location-row input[type="number"] {
-  max-width: 130px;
+  min-width: 0;
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 12px;
+  padding: 10px;
   font-weight: 700;
+}
+
+.location-row .coordinate-input {
+  width: 118px;
+}
+
+.location-row .zoom-range-input {
+  width: 72px;
+}
+
+.location-row input[type="number"]:disabled {
+  color: var(--muted);
+  background: #eef2f7;
+}
+
+@media (max-width: 640px) {
+  .location-row {
+    align-items: flex-start;
+  }
+
+  .location-controls,
+  .zoom-range-controls {
+    width: 100%;
+  }
 }
 
 .api-key-row {

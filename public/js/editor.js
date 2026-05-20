@@ -16,6 +16,84 @@ function getMaxTileZoom() {
   return tileZoomRange[1];
 }
 
+function updateZoomRangeInputs() {
+  const zoomFromInput = document.getElementById("zoomFromInput");
+  const zoomToInput = document.getElementById("zoomToInput");
+
+  if (zoomFromInput) {
+    zoomFromInput.value = getMinTileZoom();
+  }
+
+  if (zoomToInput) {
+    zoomToInput.value = getMaxTileZoom();
+  }
+
+  updateZoomRangeInputLimits();
+}
+
+function updateCurrentZoomInput() {
+  const currentZoomInput = document.getElementById("currentZoomInput");
+  if (!currentZoomInput || !previewMap) return;
+
+  currentZoomInput.value = Math.round(previewMap.getZoom());
+}
+
+function updateZoomRangeInputLimits() {
+  const zoomFromInput = document.getElementById("zoomFromInput");
+  const zoomToInput = document.getElementById("zoomToInput");
+
+  if (!zoomFromInput || !zoomToInput) return;
+
+  zoomFromInput.min = "3";
+  zoomFromInput.max = zoomToInput.value || "20";
+  zoomToInput.min = zoomFromInput.value || "3";
+  zoomToInput.max = "20";
+}
+
+function clampZoomValue(value) {
+  if (!Number.isFinite(value)) return 3;
+  return Math.min(Math.max(Math.round(value), 3), 20);
+}
+
+function normalizeZoomRangeInputs(changedInput) {
+  const zoomFromInput = document.getElementById("zoomFromInput");
+  const zoomToInput = document.getElementById("zoomToInput");
+
+  if (!zoomFromInput || !zoomToInput) return;
+
+  let from = clampZoomValue(Number(zoomFromInput.value));
+  let to = clampZoomValue(Number(zoomToInput.value));
+
+  if (from > to) {
+    if (changedInput === zoomFromInput) {
+      to = from;
+    } else {
+      from = to;
+    }
+  }
+
+  zoomFromInput.value = from;
+  zoomToInput.value = to;
+  updateZoomRangeInputLimits();
+}
+
+function parseZoomRangeInputs() {
+  const from = Number(document.getElementById("zoomFromInput")?.value);
+  const to = Number(document.getElementById("zoomToInput")?.value);
+
+  if (
+    !Number.isInteger(from) ||
+    !Number.isInteger(to) ||
+    from < 3 ||
+    to > 20 ||
+    to < from
+  ) {
+    return null;
+  }
+
+  return [from, to];
+}
+
 function showNotification(message, type = "success") {
   const notification = document.createElement("div");
   notification.className = `notification ${type}`;
@@ -44,14 +122,78 @@ function goToLocation() {
   localStorage.setItem("editor_lat", lat);
   localStorage.setItem("editor_lon", lon);
   previewMap.setView([lat, lon], getMaxTileZoom());
+  updateCurrentZoomInput();
 
   setTimeout(() => {
     previewMap.invalidateSize();
   }, 100);
 }
 
+function applyZoomRange() {
+  const nextRange = parseZoomRangeInputs();
+
+  if (!nextRange) {
+    updateZoomRangeInputs();
+    showNotification("Invalid zoom range", "error");
+    return;
+  }
+
+  updateTileZoomRange(nextRange);
+}
+
+async function updateTileZoomRange(nextRange) {
+  try {
+    const res = await fetch("/api/config/tile-zoom-range", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ tileZoomRange: nextRange })
+    });
+
+    const result = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(result.error || "Invalid zoom range");
+    }
+
+    tileZoomRange = Array.isArray(result.tileZoomRange)
+      ? result.tileZoomRange
+      : nextRange;
+  } catch (err) {
+    updateZoomRangeInputs();
+    showNotification(err.message || "Unable to update zoom range", "error");
+    return;
+  }
+
+  if (previewMap) {
+    previewMap.setMinZoom(getMinTileZoom());
+    previewMap.setMaxZoom(getMaxTileZoom());
+
+    const nextZoom = Math.min(
+      Math.max(previewMap.getZoom(), getMinTileZoom()),
+      getMaxTileZoom()
+    );
+    previewMap.setZoom(nextZoom);
+    updateCurrentZoomInput();
+  }
+
+  refreshPreviewMap();
+  showNotification("Zoom range updated");
+}
+
+window.applyZoomRange = applyZoomRange;
+
 document.getElementById("cacheToggle")?.addEventListener("change", () => {
   refreshPreviewMap();
+});
+
+document.getElementById("zoomFromInput")?.addEventListener("input", (event) => {
+  normalizeZoomRangeInputs(event.target);
+});
+
+document.getElementById("zoomToInput")?.addEventListener("input", (event) => {
+  normalizeZoomRangeInputs(event.target);
 });
 
 function isCacheDisabled() {
@@ -105,6 +247,8 @@ async function loadConfig() {
     }
   } catch (err) {
     console.error("Failed to load config:", err);
+  } finally {
+    updateZoomRangeInputs();
   }
 }
 
@@ -193,6 +337,9 @@ function initPreviewMap() {
     maxNativeZoom: getMaxTileZoom(),
     attribution: "© CuriooCity"
   }).addTo(previewMap);
+
+  previewMap.on("zoomend", updateCurrentZoomInput);
+  updateCurrentZoomInput();
 }
 
 async function clearPreviewTheme(theme) {

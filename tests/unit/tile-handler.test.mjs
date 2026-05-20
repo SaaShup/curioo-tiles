@@ -30,7 +30,7 @@ function loadTileHandler() {
 
   mockModule("../../lib/config.js", {
     DEFAULT_THEME: defaultThemeName,
-    TILE_ZOOM_RANGE: tileZoomRange,
+    getTileZoomRange: () => tileZoomRange,
   });
 
   mockModule("../../lib/metrics.js", {

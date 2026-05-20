@@ -1,10 +1,22 @@
 import { createRequire } from "node:module";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import request from "supertest";
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import app from "../../server.js";
+import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from "vitest";
 
 const require = createRequire(import.meta.url);
+const runtimeConfigDir = fs.mkdtempSync(path.join(os.tmpdir(), "tiles-api-test-"));
+
+process.env.TILE_ZOOM_RANGE = "[18,18]";
+process.env.TILE_RUNTIME_CONFIG_FILE = path.join(runtimeConfigDir, "runtime-config.json");
+
+const { default: app } = await import("../../server.js");
 const auth = require("../../lib/auth.js");
+
+afterAll(() => {
+  fs.rmSync(runtimeConfigDir, { recursive: true, force: true });
+});
 
 function createMockRes() {
   return {

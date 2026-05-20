@@ -37,11 +37,29 @@ async function mockThemes(page, payload = defaultThemes) {
 }
 
 async function mockConfig(page, payload = { tileZoomRange: [18, 18] }) {
+  let config = payload;
+
+  await page.route("**/api/config/tile-zoom-range", async route => {
+    const body = route.request().postDataJSON();
+    config = {
+      tileZoomRange: body.tileZoomRange,
+    };
+
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        tileZoomRange: config.tileZoomRange,
+      }),
+    });
+  });
+
   await page.route("**/api/config", route =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify(payload),
+      body: JSON.stringify(config),
     })
   );
 }
@@ -318,7 +336,72 @@ test("editor uses configured tile zoom range", async ({ page }) => {
 
   await gotoEditor(page);
 
+  await expect(page.locator("#zoomFromInput")).toHaveValue("16");
+  await expect(page.locator("#zoomFromInput")).toBeEnabled();
+  await expect(page.locator("#zoomToInput")).toHaveValue("19");
+  await expect(page.locator("#zoomToInput")).toBeEnabled();
+  await expect(page.locator("#currentZoomInput")).toHaveValue("19");
+  await expect(page.locator("#currentZoomInput")).toBeDisabled();
   await expect.poll(() => requestedZoom).toBe("19");
+});
+
+test("editor can apply a changed preview zoom range", async ({ page }) => {
+  await mockConfig(page, { tileZoomRange: [18, 19] });
+  await mockApiMe(page);
+  await mockThemes(page);
+
+  const requestedZooms = [];
+  await page.route("**/forest/*/*/*.png*", route => {
+    const match = new URL(route.request().url()).pathname.match(/^\/forest\/(\d+)\//);
+    if (match?.[1]) {
+      requestedZooms.push(match[1]);
+    }
+    route.fulfill({
+      status: 200,
+      contentType: "image/png",
+      body: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lZ0Z5wAAAABJRU5ErkJggg==",
+        "base64"
+      ),
+    });
+  });
+
+  await gotoEditor(page);
+  await expect.poll(() => requestedZooms.includes("19")).toBe(true);
+
+  requestedZooms.length = 0;
+  await page.fill("#zoomFromInput", "17");
+  await page.fill("#zoomToInput", "18");
+  await page.getByRole("button", { name: "Apply" }).click();
+
+  await expect(page.locator("#currentZoomInput")).toHaveValue("18");
+  await expect.poll(() => requestedZooms.includes("18")).toBe(true);
+});
+
+test("zoom range inputs keep from and to in order", async ({ page }) => {
+  await mockConfig(page, { tileZoomRange: [18, 19] });
+  await mockApiMe(page);
+  await mockThemes(page);
+  await page.route("**/forest/*/*/*.png*", route =>
+    route.fulfill({
+      status: 200,
+      contentType: "image/png",
+      body: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lZ0Z5wAAAABJRU5ErkJggg==",
+        "base64"
+      ),
+    })
+  );
+
+  await gotoEditor(page);
+
+  await page.fill("#zoomFromInput", "20");
+  await expect(page.locator("#zoomFromInput")).toHaveValue("20");
+  await expect(page.locator("#zoomToInput")).toHaveValue("20");
+
+  await page.fill("#zoomToInput", "17");
+  await expect(page.locator("#zoomFromInput")).toHaveValue("17");
+  await expect(page.locator("#zoomToInput")).toHaveValue("17");
 });
 
 test("location input moves map", async ({ page }) => {

@@ -3,3 +3,4 @@ test-results
 cache
 .env
 coverage
+runtime-config.json

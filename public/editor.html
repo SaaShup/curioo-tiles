@@ -56,15 +56,32 @@
       </div>
 
       <div class="location-row">
-        <label for="latInput">Lat</label>
-        <input id="latInput" type="number" step="any" value="48.692">
+        <div class="location-controls">
+          <label for="latInput">Lat</label>
+          <input id="latInput" class="coordinate-input" type="number" step="any" value="48.692">
 
-        <label for="lonInput">Lon</label>
-        <input id="lonInput" type="number" step="any" value="6.184">
+          <label for="lonInput">Lon</label>
+          <input id="lonInput" class="coordinate-input" type="number" step="any" value="6.184">
 
-        <button onclick="goToLocation()" class="btn secondary">
-          Go
-        </button>
+          <button onclick="goToLocation()" class="btn secondary">
+            Go
+          </button>
+        </div>
+
+        <div class="zoom-range-controls">
+          <label for="zoomFromInput">From</label>
+          <input id="zoomFromInput" class="zoom-range-input" type="number" min="3" max="20" value="18">
+
+          <label for="zoomToInput">To</label>
+          <input id="zoomToInput" class="zoom-range-input" type="number" min="3" max="20" value="18">
+
+          <button onclick="applyZoomRange()" class="btn secondary">
+            Apply
+          </button>
+
+          <label for="currentZoomInput">Current</label>
+          <input id="currentZoomInput" class="zoom-range-input" type="number" value="18" disabled>
+        </div>
       </div>
 
       <div id="editor" style="display: none;"></div>
