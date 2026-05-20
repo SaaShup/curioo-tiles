@@ -300,7 +300,7 @@ async function updateTileZoomRange(nextRange) {
   showNotification("Zoom range updated");
 }
 
-window.applyZoomRange = applyZoomRange;
+globalThis.applyZoomRange = applyZoomRange;
 
 document.getElementById("cacheToggle")?.addEventListener("change", () => {
   refreshPreviewMap();

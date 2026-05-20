@@ -20,6 +20,7 @@ const tinyPng = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lZ0Z5wAAAABJRU5ErkJggg==",
   "base64"
 );
+const forestTileZoomPathPattern = /^\/forest\/(\d+)\//;
 
 async function mockApiMe(page, payload = authenticatedUser) {
   await page.route("**/api/me", route =>
@@ -142,11 +143,15 @@ async function mockFullscreenApi(page) {
       get: () => Boolean(fullscreenElement),
     });
 
-    function requestFullscreen() {
-      fullscreenElement = this;
-      window.__fullscreenRequestedElement = this;
+    function setFullscreenElement(element) {
+      fullscreenElement = element;
+      globalThis.__fullscreenRequestedElement = element;
       emitFullscreenChange();
       return Promise.resolve();
+    }
+
+    function requestFullscreen() {
+      return setFullscreenElement(this);
     }
 
     [Element.prototype, HTMLElement.prototype, SVGElement.prototype].forEach((prototype) => {
@@ -327,7 +332,7 @@ test("editor uses configured tile zoom range", async ({ page }) => {
 
   let requestedZoom;
   await page.route("**/forest/*/*/*.png*", route => {
-    const match = new URL(route.request().url()).pathname.match(/^\/forest\/(\d+)\//);
+    const match = forestTileZoomPathPattern.exec(new URL(route.request().url()).pathname);
     requestedZoom = match?.[1];
     route.fulfill({
       status: 200,
@@ -354,7 +359,7 @@ test("editor can apply a changed preview zoom range", async ({ page }) => {
 
   const requestedZooms = [];
   await page.route("**/forest/*/*/*.png*", route => {
-    const match = new URL(route.request().url()).pathname.match(/^\/forest\/(\d+)\//);
+    const match = forestTileZoomPathPattern.exec(new URL(route.request().url()).pathname);
     if (match?.[1]) {
       requestedZooms.push(match[1]);
     }
@@ -409,8 +414,13 @@ test("map shows a loader while tiles are being fetched", async ({ page }) => {
   const tileResponse = new Promise(resolve => {
     resolveTile = resolve;
   });
+  let resolveTileStarted;
+  const tileStarted = new Promise(resolve => {
+    resolveTileStarted = resolve;
+  });
 
   await page.route("**/forest/*/*/*.png*", async route => {
+    resolveTileStarted();
     await tileResponse;
     route.fulfill({
       status: 200,
@@ -420,8 +430,10 @@ test("map shows a loader while tiles are being fetched", async ({ page }) => {
   });
 
   await gotoEditor(page);
+  await tileStarted;
 
   await expect(page.locator("#mapLoadingOverlay")).toBeVisible();
+  await expect(page.locator("#mapTileCounter")).toContainText("/");
 
   resolveTile();
 
@@ -656,7 +668,7 @@ test("map can enter fullscreen mode", async ({ page }) => {
       const fullscreenButton = document.querySelector(
         ".leaflet-control-fullscreen a, .leaflet-control-zoom-fullscreen, a[title*='Full Screen'], a[title*='Fullscreen'], a[title*='Exit']"
       );
-      const requested = window.__fullscreenRequestedElement || document.fullscreenElement;
+      const requested = globalThis.__fullscreenRequestedElement || document.fullscreenElement;
 
       return Boolean(
         requested ||
