@@ -56,6 +56,7 @@ DEBUG=false
 THEME=forest
 OVERPASS_URL=https://${OVERPASS_URL}
 # Inclusive tile zoom range as [from,to]. Defaults to [18,18].
+# from must be >= 3 and to must be <= 20.
 TILE_ZOOM_RANGE=[18,18]
 
 # Tile API key protection

@@ -56,6 +56,111 @@ async function setupAuthenticatedEditor(page) {
   await mockThemes(page);
 }
 
+function fullscreenControl(page) {
+  return page.locator([
+    ".leaflet-control-fullscreen a",
+    ".leaflet-control-zoom-fullscreen",
+    "a[title*='Full Screen']",
+    "a[title*='Fullscreen']",
+  ].join(", ")).first();
+}
+
+async function mockFullscreenApi(page) {
+  await page.addInitScript(() => {
+    let fullscreenElement = null;
+
+    function emitFullscreenChange() {
+      document.dispatchEvent(new Event("fullscreenchange"));
+      document.dispatchEvent(new Event("webkitfullscreenchange"));
+    }
+
+    Object.defineProperty(document, "fullscreenEnabled", {
+      configurable: true,
+      get: () => true,
+    });
+
+    Object.defineProperty(document, "webkitFullscreenEnabled", {
+      configurable: true,
+      get: () => true,
+    });
+
+    Object.defineProperty(document, "mozFullScreenEnabled", {
+      configurable: true,
+      get: () => true,
+    });
+
+    Object.defineProperty(document, "msFullscreenEnabled", {
+      configurable: true,
+      get: () => true,
+    });
+
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      get: () => fullscreenElement,
+    });
+
+    Object.defineProperty(document, "webkitFullscreenElement", {
+      configurable: true,
+      get: () => fullscreenElement,
+    });
+
+    Object.defineProperty(document, "mozFullScreenElement", {
+      configurable: true,
+      get: () => fullscreenElement,
+    });
+
+    Object.defineProperty(document, "msFullscreenElement", {
+      configurable: true,
+      get: () => fullscreenElement,
+    });
+
+    Object.defineProperty(document, "webkitIsFullScreen", {
+      configurable: true,
+      get: () => Boolean(fullscreenElement),
+    });
+
+    function requestFullscreen() {
+      fullscreenElement = this;
+      window.__fullscreenRequestedElement = this;
+      emitFullscreenChange();
+      return Promise.resolve();
+    }
+
+    [Element.prototype, HTMLElement.prototype, SVGElement.prototype].forEach((prototype) => {
+      Object.defineProperty(prototype, "requestFullscreen", {
+        configurable: true,
+        value: requestFullscreen,
+      });
+      Object.defineProperty(prototype, "webkitRequestFullscreen", {
+        configurable: true,
+        value: requestFullscreen,
+      });
+      Object.defineProperty(prototype, "webkitRequestFullScreen", {
+        configurable: true,
+        value: requestFullscreen,
+      });
+      Object.defineProperty(prototype, "mozRequestFullScreen", {
+        configurable: true,
+        value: requestFullscreen,
+      });
+      Object.defineProperty(prototype, "msRequestFullscreen", {
+        configurable: true,
+        value: requestFullscreen,
+      });
+    });
+
+    document.exitFullscreen = function exitFullscreen() {
+      fullscreenElement = null;
+      emitFullscreenChange();
+      return Promise.resolve();
+    };
+
+    document.webkitExitFullscreen = document.exitFullscreen;
+    document.mozCancelFullScreen = document.exitFullscreen;
+    document.msExitFullscreen = document.exitFullscreen;
+  });
+}
+
 test("editor page loads", async ({ page }) => {
   await gotoEditor(page);
 
@@ -401,41 +506,41 @@ test("toggle pickers button hides and shows the editor", async ({ page }) => {
 test("map fullscreen control is visible", async ({ page }) => {
   await page.goto("http://localhost:3000/editor");
 
-  const fullscreenButton = page.locator("a[title*='Full Screen']")
+  const fullscreenButton = fullscreenControl(page);
 
   await expect(fullscreenButton).toBeVisible();
 });
 
-test("map can enter fullscreen mode", async ({ page }, testInfo) => {
-  test.skip(
-    testInfo.project.name === "mobile-chrome",
-    "Mobile browser emulation does not reliably support the Fullscreen API in headless runs."
-  );
-
+test("map can enter fullscreen mode", async ({ page }) => {
+  await mockFullscreenApi(page);
   await page.goto("http://localhost:3000/editor");
 
-  const fullscreenButton =  page.locator("a[title*='Full Screen']").first();
+  const fullscreenButton = fullscreenControl(page);
 
   await expect(fullscreenButton).toBeVisible();
   await fullscreenButton.click();
 
   await expect(page.locator("#mapPreview")).toBeVisible();
 
-  await expect.poll(async () => {
-    return page.evaluate(() => {
+  await expect.poll(() =>
+    page.evaluate(() => {
       const map = document.getElementById("mapPreview");
-      const parent = map.parentElement;
+      const mapContainer = map?.closest(".leaflet-container");
+      const fullscreenButton = document.querySelector(
+        ".leaflet-control-fullscreen a, .leaflet-control-zoom-fullscreen, a[title*='Full Screen'], a[title*='Fullscreen'], a[title*='Exit']"
+      );
+      const requested = window.__fullscreenRequestedElement || document.fullscreenElement;
 
-      const mapRect = map.getBoundingClientRect();
-      const parentRect = parent.getBoundingClientRect();
-
-      return {
-        fillsWidth: Math.round(mapRect.width) >= Math.round(parentRect.width) - 5,
-        fillsHeight: Math.round(mapRect.height) >= Math.round(parentRect.height) - 5,
-      };
-    });
-  }).toEqual({
-    fillsWidth: true,
-    fillsHeight: true,
-  });
+      return Boolean(
+        requested ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        document.msFullscreenElement ||
+        document.webkitIsFullScreen ||
+        map?.classList.contains("leaflet-fullscreen-on") ||
+        mapContainer?.classList.contains("leaflet-fullscreen-on") ||
+        fullscreenButton?.getAttribute("title")?.toLowerCase().includes("exit")
+      );
+    })
+  ).toBe(true);
 });

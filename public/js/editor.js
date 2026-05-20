@@ -97,6 +97,8 @@ async function loadConfig() {
       config.tileZoomRange.length === 2 &&
       Number.isInteger(config.tileZoomRange[0]) &&
       Number.isInteger(config.tileZoomRange[1]) &&
+      config.tileZoomRange[0] >= 3 &&
+      config.tileZoomRange[1] <= 20 &&
       config.tileZoomRange[1] >= config.tileZoomRange[0]
     ) {
       tileZoomRange = config.tileZoomRange;
