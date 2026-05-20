@@ -16,6 +16,11 @@ const defaultThemes = {
   },
 };
 
+const tinyPng = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lZ0Z5wAAAABJRU5ErkJggg==",
+  "base64"
+);
+
 async function mockApiMe(page, payload = authenticatedUser) {
   await page.route("**/api/me", route =>
     route.fulfill({
@@ -327,10 +332,7 @@ test("editor uses configured tile zoom range", async ({ page }) => {
     route.fulfill({
       status: 200,
       contentType: "image/png",
-      body: Buffer.from(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lZ0Z5wAAAABJRU5ErkJggg==",
-        "base64"
-      ),
+      body: tinyPng,
     });
   });
 
@@ -359,10 +361,7 @@ test("editor can apply a changed preview zoom range", async ({ page }) => {
     route.fulfill({
       status: 200,
       contentType: "image/png",
-      body: Buffer.from(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lZ0Z5wAAAABJRU5ErkJggg==",
-        "base64"
-      ),
+      body: tinyPng,
     });
   });
 
@@ -386,10 +385,7 @@ test("zoom range inputs keep from and to in order", async ({ page }) => {
     route.fulfill({
       status: 200,
       contentType: "image/png",
-      body: Buffer.from(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lZ0Z5wAAAABJRU5ErkJggg==",
-        "base64"
-      ),
+      body: tinyPng,
     })
   );
 
@@ -402,6 +398,54 @@ test("zoom range inputs keep from and to in order", async ({ page }) => {
   await page.fill("#zoomToInput", "17");
   await expect(page.locator("#zoomFromInput")).toHaveValue("17");
   await expect(page.locator("#zoomToInput")).toHaveValue("17");
+});
+
+test("map shows a loader while tiles are being fetched", async ({ page }) => {
+  await mockConfig(page);
+  await mockApiMe(page);
+  await mockThemes(page);
+
+  let resolveTile;
+  const tileResponse = new Promise(resolve => {
+    resolveTile = resolve;
+  });
+
+  await page.route("**/forest/*/*/*.png*", async route => {
+    await tileResponse;
+    route.fulfill({
+      status: 200,
+      contentType: "image/png",
+      body: tinyPng,
+    });
+  });
+
+  await gotoEditor(page);
+
+  await expect(page.locator("#mapLoadingOverlay")).toBeVisible();
+
+  resolveTile();
+
+  await expect(page.locator("#mapLoadingOverlay")).toBeHidden();
+});
+
+test("map shows an authorization message when tile requests are unauthorized", async ({ page }) => {
+  await mockConfig(page);
+  await mockApiMe(page);
+  await mockThemes(page);
+
+  await page.route("**/forest/*/*/*.png*", route =>
+    route.fulfill({
+      status: 401,
+      contentType: "text/plain",
+      body: "Unauthorized API key",
+    })
+  );
+
+  await gotoEditor(page);
+
+  await expect(page.locator("#mapUnauthorizedOverlay")).toBeVisible();
+  await expect(page.getByText("Tile access denied")).toBeVisible();
+  await expect(page.locator("#mapPreview")).toHaveAttribute("aria-hidden", "true");
 });
 
 test("location input moves map", async ({ page }) => {

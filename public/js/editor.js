@@ -7,6 +7,10 @@ let currentApiKeys = "";
 let apiKeysHidden = true;
 let currentPreviewToken = null;
 let tileZoomRange = [18, 18];
+let pendingTileRequests = 0;
+let totalTileRequests = 0;
+let completedTileRequests = 0;
+let tileAccessDenied = false;
 
 function getMinTileZoom() {
   return tileZoomRange[0];
@@ -109,6 +113,120 @@ function showNotification(message, type = "success") {
     notification.classList.remove("show");
     setTimeout(() => notification.remove(), 300);
   }, 2000);
+}
+
+function setMapLoading(isLoading) {
+  const overlay = document.getElementById("mapLoadingOverlay");
+  if (!overlay || tileAccessDenied) return;
+
+  overlay.hidden = !isLoading;
+}
+
+function updateTileCounter() {
+  const counter = document.getElementById("mapTileCounter");
+  if (!counter) return;
+
+  counter.textContent = `${completedTileRequests}/${totalTileRequests}`;
+}
+
+function setMapUnauthorized(isUnauthorized) {
+  tileAccessDenied = isUnauthorized;
+
+  const overlay = document.getElementById("mapUnauthorizedOverlay");
+  const map = document.getElementById("mapPreview");
+  const loadingOverlay = document.getElementById("mapLoadingOverlay");
+
+  if (overlay) {
+    overlay.hidden = !isUnauthorized;
+  }
+
+  if (map) {
+    map.setAttribute("aria-hidden", isUnauthorized ? "true" : "false");
+  }
+
+  if (loadingOverlay && isUnauthorized) {
+    loadingOverlay.hidden = true;
+  }
+}
+
+function beginTileRequest() {
+  pendingTileRequests += 1;
+  totalTileRequests += 1;
+  updateTileCounter();
+  setMapLoading(true);
+}
+
+function finishTileRequest() {
+  pendingTileRequests = Math.max(0, pendingTileRequests - 1);
+  completedTileRequests = Math.min(totalTileRequests, completedTileRequests + 1);
+  updateTileCounter();
+  setMapLoading(pendingTileRequests > 0);
+}
+
+function resetTileLoadingState() {
+  pendingTileRequests = 0;
+  totalTileRequests = 0;
+  completedTileRequests = 0;
+  updateTileCounter();
+  setMapLoading(false);
+}
+
+function createStatusAwareTileLayer(urlTemplate, options) {
+  const StatusAwareTileLayer = L.TileLayer.extend({
+    createTile(coords, done) {
+      const tile = document.createElement("img");
+      tile.alt = "";
+      tile.setAttribute("role", "presentation");
+
+      beginTileRequest();
+
+      fetch(this.getTileUrl(coords))
+        .then((res) => {
+          if (res.status === 401) {
+            setMapUnauthorized(true);
+            throw new Error("Unauthorized tile request");
+          }
+
+          if (!res.ok) {
+            throw new Error(`Tile request failed: ${res.status}`);
+          }
+
+          return res.blob();
+        })
+        .then((blob) => {
+          const url = URL.createObjectURL(blob);
+          tile.onload = () => {
+            URL.revokeObjectURL(url);
+            finishTileRequest();
+            done(null, tile);
+          };
+          tile.onerror = () => {
+            URL.revokeObjectURL(url);
+            finishTileRequest();
+            done(new Error("Tile image failed to load"), tile);
+          };
+          tile.src = url;
+        })
+        .catch((err) => {
+          finishTileRequest();
+          done(err, tile);
+        });
+
+      return tile;
+    },
+  });
+
+  return new StatusAwareTileLayer(urlTemplate, options);
+}
+
+function createPreviewTileLayer() {
+  return createStatusAwareTileLayer(getThemeTileUrl(currentTheme), {
+    tileSize: 256,
+    minZoom: getMinTileZoom(),
+    maxZoom: getMaxTileZoom(),
+    maxNativeZoom: getMaxTileZoom(),
+    attribution: "© CuriooCity"
+  });
 }
 
 function goToLocation() {
@@ -321,6 +439,9 @@ function toggleApiKeyVisibility() {
 }
 
 function initPreviewMap() {
+  resetTileLoadingState();
+  setMapUnauthorized(false);
+
   previewMap = L.map("mapPreview", {
     center: [48.692, 6.184],
     zoom: getMaxTileZoom(),
@@ -330,13 +451,7 @@ function initPreviewMap() {
     fullscreenControl: true
   });
 
-  previewLayer = L.tileLayer(getThemeTileUrl(currentTheme), {
-    tileSize: 256,
-    minZoom: getMinTileZoom(),
-    maxZoom: getMaxTileZoom(),
-    maxNativeZoom: getMaxTileZoom(),
-    attribution: "© CuriooCity"
-  }).addTo(previewMap);
+  previewLayer = createPreviewTileLayer().addTo(previewMap);
 
   previewMap.on("zoomend", updateCurrentZoomInput);
   updateCurrentZoomInput();
@@ -351,17 +466,14 @@ async function clearPreviewTheme(theme) {
 function refreshPreviewMap() {
   if (!previewMap) return;
 
+  resetTileLoadingState();
+  setMapUnauthorized(false);
+
   if (previewLayer) {
     previewMap.removeLayer(previewLayer);
   }
 
-  previewLayer = L.tileLayer(getThemeTileUrl(currentTheme), {
-    tileSize: 256,
-    minZoom: getMinTileZoom(),
-    maxZoom: getMaxTileZoom(),
-    maxNativeZoom: getMaxTileZoom(),
-    attribution: "© CuriooCity"
-  }).addTo(previewMap);
+  previewLayer = createPreviewTileLayer().addTo(previewMap);
 
   setTimeout(() => previewMap.invalidateSize(), 100);
 }

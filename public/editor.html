@@ -88,6 +88,15 @@
 
       <div class="preview-map">
         <div id="mapPreview"></div>
+        <div id="mapLoadingOverlay" class="map-overlay map-loading" hidden>
+          <span class="map-spinner" aria-hidden="true"></span>
+          <span>Loading tiles</span>
+          <span id="mapTileCounter" class="map-tile-counter">0/0</span>
+        </div>
+        <div id="mapUnauthorizedOverlay" class="map-overlay map-message" hidden>
+          <strong>Tile access denied</strong>
+          <span>Login or Check the configured tile API key and try again.</span>
+        </div>
       </div>
 
       <div id="status" class="status"></div>
