@@ -107,14 +107,14 @@ describe("geo", () => {
   it("getZonesForBbox does not include a zone touched only by the max edge", () => {
     const zones = getZonesForBbox({
       latMin: 48.6,
-      lonMin: 6.0,
+      lonMin: 6,
       latMax: 48.62,
       lonMax: 6.02,
     });
 
     expect(zones).toHaveLength(1);
     expect(zones[0].latMin).toBeCloseTo(48.6);
-    expect(zones[0].lonMin).toBeCloseTo(6.0);
+    expect(zones[0].lonMin).toBeCloseTo(6);
     expect(zones[0].latMax).toBeCloseTo(48.62);
     expect(zones[0].lonMax).toBeCloseTo(6.02);
   });

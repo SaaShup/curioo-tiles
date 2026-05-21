@@ -152,6 +152,25 @@ describe("config", () => {
     expect(config.getTileZoomRange()).toEqual([17, 19]);
   });
 
+  it("falls back to environment default when persisted tile zoom range is invalid", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const runtimeConfigFile = path.join(tempDir, "runtime-config.json");
+    fs.writeFileSync(runtimeConfigFile, JSON.stringify({
+      tileZoomRange: [19, 17],
+    }));
+
+    const config = loadConfig({
+      TILE_ZOOM_RANGE: "[16,18]",
+      TILE_RUNTIME_CONFIG_FILE: runtimeConfigFile,
+    });
+
+    expect(config.getTileZoomRange()).toEqual([16, 18]);
+    expect(warn).toHaveBeenCalledWith(
+      "Failed to load persisted tile zoom range:",
+      expect.stringContaining("TILE_ZOOM_RANGE must")
+    );
+  });
+
   it("rejects invalid runtime tile zoom ranges", () => {
     const config = loadConfig();
 

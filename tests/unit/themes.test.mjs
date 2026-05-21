@@ -219,14 +219,11 @@ describe("themes", () => {
   it("saves theme diffs without forest fallback when no forest default exists", async () => {
     process.env.TILE_RUNTIME_CONFIG_FILE = tempDir;
 
-    const { DEFAULT_THEMES_FILE, saveTheme } = loadThemesModule();
-    const originalReadFile = fs.readFileSync.bind(fs);
-    const readFile = vi.spyOn(fs, "readFileSync").mockImplementation((file, encoding) => {
-      if (file === DEFAULT_THEMES_FILE) {
-        return "{}";
-      }
-
-      return originalReadFile(file, encoding);
+    const themesModule = loadThemesModule();
+    const { saveTheme } = themesModule;
+    const readFile = vi.spyOn(fs, "readFileSync").mockImplementationOnce((file) => {
+      expect(file).toBe(themesModule.DEFAULT_THEMES_FILE);
+      return "{}";
     });
 
     saveTheme("custom", {
