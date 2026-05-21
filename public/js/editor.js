@@ -6,6 +6,97 @@ let isAuthenticated = false;
 let currentApiKeys = "";
 let apiKeysHidden = true;
 let currentPreviewToken = null;
+let tileZoomRange = [18, 18];
+let pendingTileRequests = 0;
+let totalTileRequests = 0;
+let completedTileRequests = 0;
+let tileAccessDenied = false;
+
+function getMinTileZoom() {
+  return tileZoomRange[0];
+}
+
+function getMaxTileZoom() {
+  return tileZoomRange[1];
+}
+
+function updateZoomRangeInputs() {
+  const zoomFromInput = document.getElementById("zoomFromInput");
+  const zoomToInput = document.getElementById("zoomToInput");
+
+  if (zoomFromInput) {
+    zoomFromInput.value = getMinTileZoom();
+  }
+
+  if (zoomToInput) {
+    zoomToInput.value = getMaxTileZoom();
+  }
+
+  updateZoomRangeInputLimits();
+}
+
+function updateCurrentZoomInput() {
+  const currentZoomInput = document.getElementById("currentZoomInput");
+  if (!currentZoomInput || !previewMap) return;
+
+  currentZoomInput.value = Math.round(previewMap.getZoom());
+}
+
+function updateZoomRangeInputLimits() {
+  const zoomFromInput = document.getElementById("zoomFromInput");
+  const zoomToInput = document.getElementById("zoomToInput");
+
+  if (!zoomFromInput || !zoomToInput) return;
+
+  zoomFromInput.min = "3";
+  zoomFromInput.max = zoomToInput.value || "20";
+  zoomToInput.min = zoomFromInput.value || "3";
+  zoomToInput.max = "20";
+}
+
+function clampZoomValue(value) {
+  if (!Number.isFinite(value)) return 3;
+  return Math.min(Math.max(Math.round(value), 3), 20);
+}
+
+function normalizeZoomRangeInputs(changedInput) {
+  const zoomFromInput = document.getElementById("zoomFromInput");
+  const zoomToInput = document.getElementById("zoomToInput");
+
+  if (!zoomFromInput || !zoomToInput) return;
+
+  let from = clampZoomValue(Number(zoomFromInput.value));
+  let to = clampZoomValue(Number(zoomToInput.value));
+
+  if (from > to) {
+    if (changedInput === zoomFromInput) {
+      to = from;
+    } else {
+      from = to;
+    }
+  }
+
+  zoomFromInput.value = from;
+  zoomToInput.value = to;
+  updateZoomRangeInputLimits();
+}
+
+function parseZoomRangeInputs() {
+  const from = Number(document.getElementById("zoomFromInput")?.value);
+  const to = Number(document.getElementById("zoomToInput")?.value);
+
+  if (
+    !Number.isInteger(from) ||
+    !Number.isInteger(to) ||
+    from < 3 ||
+    to > 20 ||
+    to < from
+  ) {
+    return null;
+  }
+
+  return [from, to];
+}
 
 function showNotification(message, type = "success") {
   const notification = document.createElement("div");
@@ -24,6 +115,120 @@ function showNotification(message, type = "success") {
   }, 2000);
 }
 
+function setMapLoading(isLoading) {
+  const overlay = document.getElementById("mapLoadingOverlay");
+  if (!overlay || tileAccessDenied) return;
+
+  overlay.hidden = !isLoading;
+}
+
+function updateTileCounter() {
+  const counter = document.getElementById("mapTileCounter");
+  if (!counter) return;
+
+  counter.textContent = `${completedTileRequests}/${totalTileRequests}`;
+}
+
+function setMapUnauthorized(isUnauthorized) {
+  tileAccessDenied = isUnauthorized;
+
+  const overlay = document.getElementById("mapUnauthorizedOverlay");
+  const map = document.getElementById("mapPreview");
+  const loadingOverlay = document.getElementById("mapLoadingOverlay");
+
+  if (overlay) {
+    overlay.hidden = !isUnauthorized;
+  }
+
+  if (map) {
+    map.setAttribute("aria-hidden", isUnauthorized ? "true" : "false");
+  }
+
+  if (loadingOverlay && isUnauthorized) {
+    loadingOverlay.hidden = true;
+  }
+}
+
+function beginTileRequest() {
+  pendingTileRequests += 1;
+  totalTileRequests += 1;
+  updateTileCounter();
+  setMapLoading(true);
+}
+
+function finishTileRequest() {
+  pendingTileRequests = Math.max(0, pendingTileRequests - 1);
+  completedTileRequests = Math.min(totalTileRequests, completedTileRequests + 1);
+  updateTileCounter();
+  setMapLoading(pendingTileRequests > 0);
+}
+
+function resetTileLoadingState() {
+  pendingTileRequests = 0;
+  totalTileRequests = 0;
+  completedTileRequests = 0;
+  updateTileCounter();
+  setMapLoading(false);
+}
+
+function createStatusAwareTileLayer(urlTemplate, options) {
+  const StatusAwareTileLayer = L.TileLayer.extend({
+    createTile(coords, done) {
+      const tile = document.createElement("img");
+      tile.alt = "";
+      tile.setAttribute("role", "presentation");
+
+      beginTileRequest();
+
+      fetch(this.getTileUrl(coords))
+        .then((res) => {
+          if (res.status === 401) {
+            setMapUnauthorized(true);
+            throw new Error("Unauthorized tile request");
+          }
+
+          if (!res.ok) {
+            throw new Error(`Tile request failed: ${res.status}`);
+          }
+
+          return res.blob();
+        })
+        .then((blob) => {
+          const url = URL.createObjectURL(blob);
+          tile.onload = () => {
+            URL.revokeObjectURL(url);
+            finishTileRequest();
+            done(null, tile);
+          };
+          tile.onerror = () => {
+            URL.revokeObjectURL(url);
+            finishTileRequest();
+            done(new Error("Tile image failed to load"), tile);
+          };
+          tile.src = url;
+        })
+        .catch((err) => {
+          finishTileRequest();
+          done(err, tile);
+        });
+
+      return tile;
+    },
+  });
+
+  return new StatusAwareTileLayer(urlTemplate, options);
+}
+
+function createPreviewTileLayer() {
+  return createStatusAwareTileLayer(getThemeTileUrl(currentTheme), {
+    tileSize: 256,
+    minZoom: getMinTileZoom(),
+    maxZoom: getMaxTileZoom(),
+    maxNativeZoom: getMaxTileZoom(),
+    attribution: "© CuriooCity"
+  });
+}
+
 function goToLocation() {
   const lat = Number(document.getElementById("latInput").value);
   const lon = Number(document.getElementById("lonInput").value);
@@ -34,15 +239,79 @@ function goToLocation() {
   showNotification("Map moved 📍");
   localStorage.setItem("editor_lat", lat);
   localStorage.setItem("editor_lon", lon);
-  previewMap.setView([lat, lon], 18);
+  previewMap.setView([lat, lon], getMaxTileZoom());
+  updateCurrentZoomInput();
 
   setTimeout(() => {
     previewMap.invalidateSize();
   }, 100);
 }
 
+function applyZoomRange() {
+  const nextRange = parseZoomRangeInputs();
+
+  if (!nextRange) {
+    updateZoomRangeInputs();
+    showNotification("Invalid zoom range", "error");
+    return;
+  }
+
+  updateTileZoomRange(nextRange);
+}
+
+async function updateTileZoomRange(nextRange) {
+  try {
+    const res = await fetch("/api/config/tile-zoom-range", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ tileZoomRange: nextRange })
+    });
+
+    const result = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(result.error || "Invalid zoom range");
+    }
+
+    tileZoomRange = Array.isArray(result.tileZoomRange)
+      ? result.tileZoomRange
+      : nextRange;
+  } catch (err) {
+    updateZoomRangeInputs();
+    showNotification(err.message || "Unable to update zoom range", "error");
+    return;
+  }
+
+  if (previewMap) {
+    previewMap.setMinZoom(getMinTileZoom());
+    previewMap.setMaxZoom(getMaxTileZoom());
+
+    const nextZoom = Math.min(
+      Math.max(previewMap.getZoom(), getMinTileZoom()),
+      getMaxTileZoom()
+    );
+    previewMap.setZoom(nextZoom);
+    updateCurrentZoomInput();
+  }
+
+  refreshPreviewMap();
+  showNotification("Zoom range updated");
+}
+
+globalThis.applyZoomRange = applyZoomRange;
+
 document.getElementById("cacheToggle")?.addEventListener("change", () => {
   refreshPreviewMap();
+});
+
+document.getElementById("zoomFromInput")?.addEventListener("input", (event) => {
+  normalizeZoomRangeInputs(event.target);
+});
+
+document.getElementById("zoomToInput")?.addEventListener("input", (event) => {
+  normalizeZoomRangeInputs(event.target);
 });
 
 function isCacheDisabled() {
@@ -71,10 +340,34 @@ function getThemeTileUrl(theme) {
     : "";
 
   if (theme === "default") {
-    return `/18/{x}/{y}.png${query}`;
+    return `/{z}/{x}/{y}.png${query}`;
   }
 
-  return `/${theme}/18/{x}/{y}.png${query}`;
+  return `/${theme}/{z}/{x}/{y}.png${query}`;
+}
+
+async function loadConfig() {
+  try {
+    const res = await fetch("/api/config");
+    if (!res.ok) return;
+
+    const config = await res.json();
+    if (
+      Array.isArray(config.tileZoomRange) &&
+      config.tileZoomRange.length === 2 &&
+      Number.isInteger(config.tileZoomRange[0]) &&
+      Number.isInteger(config.tileZoomRange[1]) &&
+      config.tileZoomRange[0] >= 3 &&
+      config.tileZoomRange[1] <= 20 &&
+      config.tileZoomRange[1] >= config.tileZoomRange[0]
+    ) {
+      tileZoomRange = config.tileZoomRange;
+    }
+  } catch (err) {
+    console.error("Failed to load config:", err);
+  } finally {
+    updateZoomRangeInputs();
+  }
 }
 
 async function loadApiKeys() {
@@ -146,22 +439,22 @@ function toggleApiKeyVisibility() {
 }
 
 function initPreviewMap() {
+  resetTileLoadingState();
+  setMapUnauthorized(false);
+
   previewMap = L.map("mapPreview", {
     center: [48.692, 6.184],
-    zoom: 18,
-    minZoom: 18,
-    maxZoom: 18,
+    zoom: getMaxTileZoom(),
+    minZoom: getMinTileZoom(),
+    maxZoom: getMaxTileZoom(),
     zoomControl: true,
     fullscreenControl: true
   });
 
-  previewLayer = L.tileLayer(getThemeTileUrl(currentTheme), {
-    tileSize: 256,
-    minZoom: 18,
-    maxZoom: 18,
-    maxNativeZoom: 18,
-    attribution: "© CuriooCity"
-  }).addTo(previewMap);
+  previewLayer = createPreviewTileLayer().addTo(previewMap);
+
+  previewMap.on("zoomend", updateCurrentZoomInput);
+  updateCurrentZoomInput();
 }
 
 async function clearPreviewTheme(theme) {
@@ -173,17 +466,14 @@ async function clearPreviewTheme(theme) {
 function refreshPreviewMap() {
   if (!previewMap) return;
 
+  resetTileLoadingState();
+  setMapUnauthorized(false);
+
   if (previewLayer) {
     previewMap.removeLayer(previewLayer);
   }
 
-  previewLayer = L.tileLayer(getThemeTileUrl(currentTheme), {
-    tileSize: 256,
-    minZoom: 18,
-    maxZoom: 18,
-    maxNativeZoom: 18,
-    attribution: "© CuriooCity"
-  }).addTo(previewMap);
+  previewLayer = createPreviewTileLayer().addTo(previewMap);
 
   setTimeout(() => previewMap.invalidateSize(), 100);
 }
@@ -378,6 +668,7 @@ document.getElementById("themeSelect").addEventListener("change", async () => {
 });
 
 async function initEditor() {
+  await loadConfig();
   await loadUser();
   await loadThemes();
 
@@ -392,7 +683,7 @@ async function initEditor() {
   initPreviewMap();
 
   if (savedLat && savedLon) {
-    previewMap.setView([Number(savedLat), Number(savedLon)], 18);
+    previewMap.setView([Number(savedLat), Number(savedLon)], getMaxTileZoom());
   }
 }
 

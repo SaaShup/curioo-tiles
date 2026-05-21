@@ -1,10 +1,22 @@
 import { createRequire } from "node:module";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import request from "supertest";
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import app from "../../server.js";
+import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from "vitest";
 
 const require = createRequire(import.meta.url);
+const runtimeConfigDir = fs.mkdtempSync(path.join(os.tmpdir(), "tiles-api-test-"));
+
+process.env.TILE_ZOOM_RANGE = "[18,18]";
+process.env.TILE_RUNTIME_CONFIG_FILE = path.join(runtimeConfigDir, "runtime-config.json");
+
+const { default: app } = await import("../../server.js");
 const auth = require("../../lib/auth.js");
+
+afterAll(() => {
+  fs.rmSync(runtimeConfigDir, { recursive: true, force: true });
+});
 
 function createMockRes() {
   return {
@@ -48,7 +60,7 @@ async function expectUnsupportedZoom(url) {
   const res = await request(app).get(url);
 
   expect(res.statusCode).toBe(404);
-  expect(res.text).toContain("Only zoom 18 supported");
+  expect(res.text).toContain("Unsupported zoom level");
 }
 
 describe("Health API", () => {
@@ -72,6 +84,16 @@ describe("Metrics API", () => {
 });
 
 describe("Tile API", () => {
+  const originalTileApiKeys = process.env.TILE_API_KEYS;
+
+  beforeEach(() => {
+    process.env.TILE_API_KEYS = "";
+  });
+
+  afterEach(() => {
+    process.env.TILE_API_KEYS = originalTileApiKeys;
+  });
+
   it("should return app version", async () => {
     const res = await request(app).get("/api/version");
 
@@ -87,10 +109,17 @@ describe("Tile API", () => {
     expect(res.body.forest).toBeDefined();
   });
 
+  it("returns public config", async () => {
+    const res = await request(app).get("/api/config");
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ tileZoomRange: [18, 18] });
+  });
+
   it.each([
     ["/17/135329/89901.png"],
     ["/forest/17/135329/89901.png"],
-  ])("rejects non-18 zoom tile request %s", async url => {
+  ])("rejects zoom outside the default tile range %s", async url => {
     await expectUnsupportedZoom(url);
   });
 

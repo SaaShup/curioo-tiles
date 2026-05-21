@@ -9,6 +9,7 @@ const startTimer = vi.fn();
 const inc = vi.fn();
 const end = vi.fn();
 let defaultThemeName = "forest";
+let tileZoomRange = [18, 18];
 
 function mockModule(modulePath, exports) {
   const resolved = require.resolve(modulePath);
@@ -29,6 +30,7 @@ function loadTileHandler() {
 
   mockModule("../../lib/config.js", {
     DEFAULT_THEME: defaultThemeName,
+    getTileZoomRange: () => tileZoomRange,
   });
 
   mockModule("../../lib/metrics.js", {
@@ -61,6 +63,7 @@ describe("tile-handler", () => {
 
     startTimer.mockReturnValue(end);
     defaultThemeName = "forest";
+    tileZoomRange = [18, 18];
 
     loadThemes.mockReturnValue({
       forest: { name: "forest" },
@@ -113,7 +116,7 @@ describe("tile-handler", () => {
     await handler(createReq("17", "1", "2"), res);
 
     expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.send).toHaveBeenCalledWith("Only zoom 18 supported");
+    expect(res.send).toHaveBeenCalledWith("Unsupported zoom level");
     expect(loadThemes).not.toHaveBeenCalled();
     expect(startTimer).not.toHaveBeenCalled();
     expect(generateTile).not.toHaveBeenCalled();
@@ -142,6 +145,46 @@ describe("tile-handler", () => {
     );
     expect(res.send).toHaveBeenCalledWith(buffer);
     expect(end).toHaveBeenCalled();
+  });
+
+  it("supports both endpoints of a configured zoom range and rejects outside zooms", async () => {
+    tileZoomRange = [18, 19];
+    const buffer = Buffer.from("fake-png");
+    generateTile.mockResolvedValue(buffer);
+
+    const { createTileHandler } = loadTileHandler();
+    const handler = createTileHandler({});
+
+    const zoom18Res = createRes();
+    await handler(createReq("18", "1", "2"), zoom18Res);
+    expect(generateTile).toHaveBeenCalledWith(18, 1, 2, { name: "forest" });
+    expect(zoom18Res.send).toHaveBeenCalledWith(buffer);
+
+    vi.clearAllMocks();
+    startTimer.mockReturnValue(end);
+    generateTile.mockResolvedValue(buffer);
+
+    const zoom19Res = createRes();
+    await handler(createReq("19", "1", "2"), zoom19Res);
+    expect(generateTile).toHaveBeenCalledWith(19, 1, 2, { name: "forest" });
+    expect(zoom19Res.send).toHaveBeenCalledWith(buffer);
+
+    vi.clearAllMocks();
+
+    const zoom17Res = createRes();
+    await handler(createReq("17", "1", "2"), zoom17Res);
+    expect(zoom17Res.status).toHaveBeenCalledWith(404);
+    expect(zoom17Res.send).toHaveBeenCalledWith("Unsupported zoom level");
+
+    const zoom20Res = createRes();
+    await handler(createReq("20", "1", "2"), zoom20Res);
+    expect(zoom20Res.status).toHaveBeenCalledWith(404);
+    expect(zoom20Res.send).toHaveBeenCalledWith("Unsupported zoom level");
+
+    expect(loadThemes).not.toHaveBeenCalled();
+    expect(startTimer).not.toHaveBeenCalled();
+    expect(generateTile).not.toHaveBeenCalled();
+    expect(inc).not.toHaveBeenCalled();
   });
 
   it("uses a preview theme when one is provided", async () => {

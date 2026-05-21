@@ -21,11 +21,11 @@
 
       <p class="lead">
         This server generates PNG map tiles for Map Game Explorer (CuriooCity).
-        It provides zoom 18 tiles with cached Overpass-based map features.
+        It provides configured zoom-range tiles with cached Overpass-based map features.
       </p>
 
       <div class="pills">
-        <div class="pill">Zoom 18</div>
+        <div class="pill">Configurable zooms</div>
         <div class="pill">PNG tiles</div>
         <div class="pill">256px</div>
         <div class="pill">Cached zones</div>
@@ -45,10 +45,10 @@
     <div class="method get">GET</div>
 
     <div>
-      <div class="path">/18/{x}/{y}.png</div>
+      <div class="path">/{z}/{x}/{y}.png</div>
 
       <div class="desc">
-        Default theme tile endpoint. Only zoom level 18 is supported.
+        Default theme tile endpoint. Supported zooms are controlled by TILE_ZOOM_RANGE.
       </div>
 
       <pre>GET /18/135329/89901.png</pre>
@@ -59,7 +59,7 @@
     <div class="method get">GET</div>
 
     <div>
-      <div class="path">/{theme}/18/{x}/{y}.png</div>
+      <div class="path">/{theme}/{z}/{x}/{y}.png</div>
 
       <div class="desc">
         Generate themed tiles using the selected map style.

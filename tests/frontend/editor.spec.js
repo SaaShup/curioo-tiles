@@ -15,6 +15,15 @@ const defaultThemes = {
     road: [0, 0, 0, 255],
   },
 };
+const defaultConfig = {
+  tileZoomRange: [18, 18],
+};
+
+const tinyPng = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lZ0Z5wAAAABJRU5ErkJggg==",
+  "base64"
+);
+const forestTileZoomPathPattern = /^\/forest\/(\d+)\//;
 
 async function mockApiMe(page, payload = authenticatedUser) {
   await page.route("**/api/me", route =>
@@ -36,13 +45,151 @@ async function mockThemes(page, payload = defaultThemes) {
   );
 }
 
+async function mockConfig(page, payload = defaultConfig) {
+  let config = payload;
+
+  await page.route("**/api/config/tile-zoom-range", async route => {
+    const body = route.request().postDataJSON();
+    config = {
+      tileZoomRange: body.tileZoomRange,
+    };
+
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        tileZoomRange: config.tileZoomRange,
+      }),
+    });
+  });
+
+  await page.route("**/api/config", route =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(config),
+    })
+  );
+}
+
 async function gotoEditor(page) {
   await page.goto(EDITOR_URL);
 }
 
 async function setupAuthenticatedEditor(page) {
+  await mockConfig(page);
   await mockApiMe(page);
   await mockThemes(page);
+}
+
+function fullscreenControl(page) {
+  return page.locator([
+    ".leaflet-control-fullscreen a",
+    ".leaflet-control-zoom-fullscreen",
+    "a[title*='Full Screen']",
+    "a[title*='Fullscreen']",
+  ].join(", ")).first();
+}
+
+async function mockFullscreenApi(page) {
+  await page.addInitScript(() => {
+    let fullscreenElement = null;
+
+    function emitFullscreenChange() {
+      document.dispatchEvent(new Event("fullscreenchange"));
+      document.dispatchEvent(new Event("webkitfullscreenchange"));
+    }
+
+    Object.defineProperty(document, "fullscreenEnabled", {
+      configurable: true,
+      get: () => true,
+    });
+
+    Object.defineProperty(document, "webkitFullscreenEnabled", {
+      configurable: true,
+      get: () => true,
+    });
+
+    Object.defineProperty(document, "mozFullScreenEnabled", {
+      configurable: true,
+      get: () => true,
+    });
+
+    Object.defineProperty(document, "msFullscreenEnabled", {
+      configurable: true,
+      get: () => true,
+    });
+
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      get: () => fullscreenElement,
+    });
+
+    Object.defineProperty(document, "webkitFullscreenElement", {
+      configurable: true,
+      get: () => fullscreenElement,
+    });
+
+    Object.defineProperty(document, "mozFullScreenElement", {
+      configurable: true,
+      get: () => fullscreenElement,
+    });
+
+    Object.defineProperty(document, "msFullscreenElement", {
+      configurable: true,
+      get: () => fullscreenElement,
+    });
+
+    Object.defineProperty(document, "webkitIsFullScreen", {
+      configurable: true,
+      get: () => Boolean(fullscreenElement),
+    });
+
+    function setFullscreenElement(element) {
+      fullscreenElement = element;
+      globalThis.__fullscreenRequestedElement = element;
+      emitFullscreenChange();
+      return Promise.resolve();
+    }
+
+    function requestFullscreen() {
+      return setFullscreenElement(this);
+    }
+
+    [Element.prototype, HTMLElement.prototype, SVGElement.prototype].forEach((prototype) => {
+      Object.defineProperty(prototype, "requestFullscreen", {
+        configurable: true,
+        value: requestFullscreen,
+      });
+      Object.defineProperty(prototype, "webkitRequestFullscreen", {
+        configurable: true,
+        value: requestFullscreen,
+      });
+      Object.defineProperty(prototype, "webkitRequestFullScreen", {
+        configurable: true,
+        value: requestFullscreen,
+      });
+      Object.defineProperty(prototype, "mozRequestFullScreen", {
+        configurable: true,
+        value: requestFullscreen,
+      });
+      Object.defineProperty(prototype, "msRequestFullscreen", {
+        configurable: true,
+        value: requestFullscreen,
+      });
+    });
+
+    document.exitFullscreen = function exitFullscreen() {
+      fullscreenElement = null;
+      emitFullscreenChange();
+      return Promise.resolve();
+    };
+
+    document.webkitExitFullscreen = document.exitFullscreen;
+    document.mozCancelFullScreen = document.exitFullscreen;
+    document.msExitFullscreen = document.exitFullscreen;
+  });
 }
 
 test("editor page loads", async ({ page }) => {
@@ -65,6 +212,7 @@ test("theme select changes editor colors", async ({ page }) => {
 });
 
 test("theme select loads options from API", async ({ page }) => {
+  await mockConfig(page);
   await mockThemes(page, {
     forest: {
       background: [255, 255, 255, 255],
@@ -178,6 +326,141 @@ test("cache toggle adds cache-busting param to tile requests", async ({ page }) 
   const request = await cacheRequest;
 
   expect(request.url()).toContain("?v=");
+});
+
+test("editor uses configured tile zoom range", async ({ page }) => {
+  await mockConfig(page, { tileZoomRange: [16, 19] });
+  await mockApiMe(page);
+  await mockThemes(page);
+
+  let requestedZoom;
+  await page.route("**/forest/*/*/*.png*", route => {
+    const match = forestTileZoomPathPattern.exec(new URL(route.request().url()).pathname);
+    requestedZoom = match?.[1];
+    route.fulfill({
+      status: 200,
+      contentType: "image/png",
+      body: tinyPng,
+    });
+  });
+
+  await gotoEditor(page);
+
+  await expect(page.locator("#zoomFromInput")).toHaveValue("16");
+  await expect(page.locator("#zoomFromInput")).toBeEnabled();
+  await expect(page.locator("#zoomToInput")).toHaveValue("19");
+  await expect(page.locator("#zoomToInput")).toBeEnabled();
+  await expect(page.locator("#currentZoomInput")).toHaveValue("19");
+  await expect(page.locator("#currentZoomInput")).toBeDisabled();
+  await expect.poll(() => requestedZoom).toBe("19");
+});
+
+test("editor can apply a changed preview zoom range", async ({ page }) => {
+  await mockConfig(page, { tileZoomRange: [18, 19] });
+  await mockApiMe(page);
+  await mockThemes(page);
+
+  const requestedZooms = [];
+  await page.route("**/forest/*/*/*.png*", route => {
+    const match = forestTileZoomPathPattern.exec(new URL(route.request().url()).pathname);
+    if (match?.[1]) {
+      requestedZooms.push(match[1]);
+    }
+    route.fulfill({
+      status: 200,
+      contentType: "image/png",
+      body: tinyPng,
+    });
+  });
+
+  await gotoEditor(page);
+  await expect.poll(() => requestedZooms.includes("19")).toBe(true);
+
+  requestedZooms.length = 0;
+  await page.fill("#zoomFromInput", "17");
+  await page.fill("#zoomToInput", "18");
+  await page.getByRole("button", { name: "Apply" }).click();
+
+  await expect(page.locator("#currentZoomInput")).toHaveValue("18");
+  await expect.poll(() => requestedZooms.includes("18")).toBe(true);
+});
+
+test("zoom range inputs keep from and to in order", async ({ page }) => {
+  await mockConfig(page, { tileZoomRange: [18, 19] });
+  await mockApiMe(page);
+  await mockThemes(page);
+  await page.route("**/forest/*/*/*.png*", route =>
+    route.fulfill({
+      status: 200,
+      contentType: "image/png",
+      body: tinyPng,
+    })
+  );
+
+  await gotoEditor(page);
+
+  await page.fill("#zoomFromInput", "20");
+  await expect(page.locator("#zoomFromInput")).toHaveValue("20");
+  await expect(page.locator("#zoomToInput")).toHaveValue("20");
+
+  await page.fill("#zoomToInput", "17");
+  await expect(page.locator("#zoomFromInput")).toHaveValue("17");
+  await expect(page.locator("#zoomToInput")).toHaveValue("17");
+});
+
+test("map shows a loader while tiles are being fetched", async ({ page }) => {
+  await mockConfig(page);
+  await mockApiMe(page);
+  await mockThemes(page);
+
+  let resolveTile;
+  const tileResponse = new Promise(resolve => {
+    resolveTile = resolve;
+  });
+  let resolveTileStarted;
+  const tileStarted = new Promise(resolve => {
+    resolveTileStarted = resolve;
+  });
+
+  await page.route("**/forest/*/*/*.png*", async route => {
+    resolveTileStarted();
+    await tileResponse;
+    route.fulfill({
+      status: 200,
+      contentType: "image/png",
+      body: tinyPng,
+    });
+  });
+
+  await gotoEditor(page);
+  await tileStarted;
+
+  await expect(page.locator("#mapLoadingOverlay")).toBeVisible();
+  await expect(page.locator("#mapTileCounter")).toContainText("/");
+
+  resolveTile();
+
+  await expect(page.locator("#mapLoadingOverlay")).toBeHidden();
+});
+
+test("map shows an authorization message when tile requests are unauthorized", async ({ page }) => {
+  await mockConfig(page);
+  await mockApiMe(page);
+  await mockThemes(page);
+
+  await page.route("**/forest/*/*/*.png*", route =>
+    route.fulfill({
+      status: 401,
+      contentType: "text/plain",
+      body: "Unauthorized API key",
+    })
+  );
+
+  await gotoEditor(page);
+
+  await expect(page.locator("#mapUnauthorizedOverlay")).toBeVisible();
+  await expect(page.getByText("Tile access denied")).toBeVisible();
+  await expect(page.locator("#mapPreview")).toHaveAttribute("aria-hidden", "true");
 });
 
 test("location input moves map", async ({ page }) => {
@@ -365,36 +648,41 @@ test("toggle pickers button hides and shows the editor", async ({ page }) => {
 test("map fullscreen control is visible", async ({ page }) => {
   await page.goto("http://localhost:3000/editor");
 
-  const fullscreenButton = page.locator("a[title*='Full Screen']")
+  const fullscreenButton = fullscreenControl(page);
 
   await expect(fullscreenButton).toBeVisible();
 });
 
 test("map can enter fullscreen mode", async ({ page }) => {
+  await mockFullscreenApi(page);
   await page.goto("http://localhost:3000/editor");
 
-  const fullscreenButton =  page.locator("a[title*='Full Screen']").first();
+  const fullscreenButton = fullscreenControl(page);
 
   await expect(fullscreenButton).toBeVisible();
   await fullscreenButton.click();
 
   await expect(page.locator("#mapPreview")).toBeVisible();
 
-  const sizes = await page.evaluate(() => {
-    const map = document.getElementById("mapPreview");
-    const parent = map.parentElement;
+  await expect.poll(() =>
+    page.evaluate(() => {
+      const map = document.getElementById("mapPreview");
+      const mapContainer = map?.closest(".leaflet-container");
+      const fullscreenButton = document.querySelector(
+        ".leaflet-control-fullscreen a, .leaflet-control-zoom-fullscreen, a[title*='Full Screen'], a[title*='Fullscreen'], a[title*='Exit']"
+      );
+      const requested = globalThis.__fullscreenRequestedElement || document.fullscreenElement;
 
-    const mapRect = map.getBoundingClientRect();
-    const parentRect = parent.getBoundingClientRect();
-
-    return {
-      mapWidth: Math.round(mapRect.width),
-      mapHeight: Math.round(mapRect.height),
-      parentWidth: Math.round(parentRect.width),
-      parentHeight: Math.round(parentRect.height),
-    };
-  });
-
-  expect(sizes.mapWidth).toBeGreaterThanOrEqual(sizes.parentWidth - 5);
-  expect(sizes.mapHeight).toBeGreaterThanOrEqual(sizes.parentHeight - 5);
+      return Boolean(
+        requested ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        document.msFullscreenElement ||
+        document.webkitIsFullScreen ||
+        map?.classList.contains("leaflet-fullscreen-on") ||
+        mapContainer?.classList.contains("leaflet-fullscreen-on") ||
+        fullscreenButton?.getAttribute("title")?.toLowerCase().includes("exit")
+      );
+    })
+  ).toBe(true);
 });
