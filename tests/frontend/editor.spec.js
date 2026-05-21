@@ -202,6 +202,17 @@ test("editor page loads", async ({ page }) => {
 });
 
 test("theme select changes editor colors", async ({ page }) => {
+  await mockThemes(page, {
+    forest: {
+      background: [255, 255, 255, 255],
+      road: [0, 0, 0, 255],
+    },
+    space: {
+      background: [10, 10, 30, 255],
+      road: [180, 180, 255, 255],
+    },
+  });
+
   await gotoEditor(page);
 
   await page.getByRole("button", { name: "Show pickers" }).click();

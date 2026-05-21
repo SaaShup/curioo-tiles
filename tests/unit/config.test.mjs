@@ -87,6 +87,25 @@ describe("config", () => {
     expect(config.TILE_API_KEYS).toEqual(["key1", "key2"]);
   });
 
+  it("resolves TILE_RUNTIME_CONFIG_FILE as a directory or legacy file path", () => {
+    const directoryConfig = loadConfig({
+      TILE_RUNTIME_CONFIG_FILE: tempDir,
+    });
+
+    expect(directoryConfig.TILE_RUNTIME_CONFIG_DIR).toBe(tempDir);
+    expect(directoryConfig.TILE_RUNTIME_CONFIG_FILE).toBe(
+      path.join(tempDir, "runtime-config.json")
+    );
+
+    const legacyFile = path.join(tempDir, "custom-runtime.json");
+    const fileConfig = loadConfig({
+      TILE_RUNTIME_CONFIG_FILE: legacyFile,
+    });
+
+    expect(fileConfig.TILE_RUNTIME_CONFIG_DIR).toBe(tempDir);
+    expect(fileConfig.TILE_RUNTIME_CONFIG_FILE).toBe(legacyFile);
+  });
+
   it.each([
     ["not-json"],
     ["[]"],

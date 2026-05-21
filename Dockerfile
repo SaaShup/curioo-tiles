@@ -6,7 +6,7 @@ ENV NODE_ENV=production
 ENV DEBUG=false
 ENV OVERPASS_URL="http://overpass"
 ENV TILE_ZOOM_RANGE="[18,18]"
-ENV TILE_RUNTIME_CONFIG_FILE="/app/runtime-config.json"
+ENV TILE_RUNTIME_CONFIG_FILE="/data"
 ENV TILE_API_KEYS=""
 ENV ALLOWED_EDITOR_EMAILS=""
 ENV KEYCLOAK_REALM=""
@@ -21,7 +21,9 @@ RUN npm ci --omit=dev --ignore-scripts
 
 COPY . .
 
-RUN mkdir -p cache
+RUN mkdir -p cache /data
+
+VOLUME ["/data"]
 
 EXPOSE 3000
 
