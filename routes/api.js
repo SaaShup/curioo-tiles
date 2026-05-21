@@ -1,6 +1,6 @@
 const express = require("express");
 const packageJson = require("../package.json");
-const { loadThemes, saveThemes } = require("../lib/themes");
+const { loadThemes, saveTheme } = require("../lib/themes");
 const { client } = require("../lib/metrics");
 const { KEYCLOAK_URL, KEYCLOAK_REALM, getTileZoomRange, setTileZoomRange, getTileApiKeys } = require("../lib/config");
 const { keycloak, requireAllowedEditorEmail, makeInitials } = require("../lib/auth");
@@ -79,11 +79,9 @@ function createApiRouter(previewThemes) {
   });
 
   router.put("/api/themes/:theme", keycloak.protect(), requireAllowedEditorEmail, (req, res) => {
-    const themes = loadThemes();
     const themeName = req.params.theme.toLowerCase();
 
-    themes[themeName] = req.body;
-    saveThemes(themes);
+    saveTheme(themeName, req.body);
     delete previewThemes[themeName];
 
     res.json({ ok: true, theme: themeName });

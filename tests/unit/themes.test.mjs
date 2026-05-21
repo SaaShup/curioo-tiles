@@ -108,4 +108,85 @@ describe("themes", () => {
       JSON.parse(fs.readFileSync(path.join(tempDir, "themes.json"), "utf8"))
     ).toEqual(themes);
   });
+
+  it("saves only the selected theme diff from defaults", async () => {
+    process.env.TILE_RUNTIME_CONFIG_FILE = tempDir;
+
+    const { saveTheme } = loadThemesModule();
+
+    saveTheme("city", {
+      grass: [1, 2, 3, 255],
+      darkGrass: [110, 110, 110, 255],
+      lightGrass: [180, 180, 175, 255],
+      water: [80, 135, 170, 255],
+    });
+
+    expect(
+      JSON.parse(fs.readFileSync(path.join(tempDir, "themes.json"), "utf8"))
+    ).toEqual({
+      city: {
+        grass: [1, 2, 3, 255],
+      },
+    });
+  });
+
+  it("preserves other saved themes when saving one selected theme", async () => {
+    process.env.TILE_RUNTIME_CONFIG_FILE = tempDir;
+    fs.writeFileSync(
+      path.join(tempDir, "themes.json"),
+      JSON.stringify({
+        space: {
+          water: [9, 9, 9, 255],
+        },
+      })
+    );
+
+    const { saveTheme } = loadThemesModule();
+
+    saveTheme("city", {
+      grass: [1, 2, 3, 255],
+      water: [80, 135, 170, 255],
+    });
+
+    expect(
+      JSON.parse(fs.readFileSync(path.join(tempDir, "themes.json"), "utf8"))
+    ).toEqual({
+      space: {
+        water: [9, 9, 9, 255],
+      },
+      city: {
+        grass: [1, 2, 3, 255],
+      },
+    });
+  });
+
+  it("removes the selected saved theme when it matches defaults", async () => {
+    process.env.TILE_RUNTIME_CONFIG_FILE = tempDir;
+    fs.writeFileSync(
+      path.join(tempDir, "themes.json"),
+      JSON.stringify({
+        city: {
+          grass: [1, 2, 3, 255],
+        },
+        space: {
+          water: [9, 9, 9, 255],
+        },
+      })
+    );
+
+    const { saveTheme } = loadThemesModule();
+
+    saveTheme("city", {
+      grass: [150, 150, 145, 255],
+      water: [80, 135, 170, 255],
+    });
+
+    expect(
+      JSON.parse(fs.readFileSync(path.join(tempDir, "themes.json"), "utf8"))
+    ).toEqual({
+      space: {
+        water: [9, 9, 9, 255],
+      },
+    });
+  });
 });
