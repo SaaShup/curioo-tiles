@@ -219,6 +219,7 @@ describe("themes", () => {
   it("saves theme diffs without forest fallback when no forest default exists", async () => {
     process.env.TILE_RUNTIME_CONFIG_FILE = tempDir;
 
+<<<<<<< HEAD
     const themesModule = loadThemesModule();
     const { saveTheme } = themesModule;
     const readFile = vi.spyOn(fs, "readFileSync").mockImplementationOnce((file) => {
@@ -226,6 +227,10 @@ describe("themes", () => {
       return "{}";
     });
 
+=======
+    const { DEFAULT_THEMES_FILE, saveTheme } = loadThemesModule();
+    const originalReadFile = fs.readFileSync.bind(fs);
+>>>>>>> 76d2c20f7aa8a95e8413f409447c661892eb3864
     saveTheme("custom", {
       grass: [1, 2, 3, 255],
     });
