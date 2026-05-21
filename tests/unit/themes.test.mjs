@@ -221,14 +221,6 @@ describe("themes", () => {
 
     const { DEFAULT_THEMES_FILE, saveTheme } = loadThemesModule();
     const originalReadFile = fs.readFileSync.bind(fs);
-    const readFile = vi.spyOn(fs, "readFileSync").mockImplementation((file, encoding) => {
-      if (file === DEFAULT_THEMES_FILE) {
-        return "{}";
-      }
-
-      return originalReadFile(file, encoding);
-    });
-
     saveTheme("custom", {
       grass: [1, 2, 3, 255],
     });
