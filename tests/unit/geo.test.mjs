@@ -11,6 +11,8 @@ const {
   tile2bbox,
   getZoneForLatLon,
   getZoneFromTile,
+  getZonesForBbox,
+  getZonesFromTile,
   getCachePathForZone,
   project,
 } = geo;
@@ -22,6 +24,8 @@ describe("geo", () => {
     expect(typeof tile2bbox).toBe("function");
     expect(typeof getZoneForLatLon).toBe("function");
     expect(typeof getZoneFromTile).toBe("function");
+    expect(typeof getZonesForBbox).toBe("function");
+    expect(typeof getZonesFromTile).toBe("function");
     expect(typeof getCachePathForZone).toBe("function");
     expect(typeof project).toBe("function");
   });
@@ -81,6 +85,46 @@ describe("geo", () => {
     expect(centerLat).toBeLessThan(zone.latMax);
     expect(centerLon).toBeGreaterThanOrEqual(zone.lonMin);
     expect(centerLon).toBeLessThan(zone.lonMax);
+  });
+
+  it("getZonesForBbox returns every zone intersecting a bbox", () => {
+    const zones = getZonesForBbox({
+      latMin: 48.61,
+      lonMin: 6.015,
+      latMax: 48.625,
+      lonMax: 6.025,
+    });
+
+    expect(zones).toHaveLength(4);
+    expect(zones.map((zone) => `${zone.latMin.toFixed(2)}:${zone.lonMin.toFixed(2)}`)).toEqual([
+      "48.60:6.00",
+      "48.60:6.02",
+      "48.62:6.00",
+      "48.62:6.02",
+    ]);
+  });
+
+  it("getZonesForBbox does not include a zone touched only by the max edge", () => {
+    const zones = getZonesForBbox({
+      latMin: 48.6,
+      lonMin: 6.0,
+      latMax: 48.62,
+      lonMax: 6.02,
+    });
+
+    expect(zones).toHaveLength(1);
+    expect(zones[0].latMin).toBeCloseTo(48.6);
+    expect(zones[0].lonMin).toBeCloseTo(6.0);
+    expect(zones[0].latMax).toBeCloseTo(48.62);
+    expect(zones[0].lonMax).toBeCloseTo(6.02);
+  });
+
+  it("getZonesFromTile includes adjacent zones for a tile crossing a zone edge", () => {
+    const zones = getZonesFromTile(16, 33863, 22544);
+
+    expect(zones.length).toBeGreaterThan(1);
+    expect(zones.some((zone) => zone.lonMin.toFixed(2) === "6.00")).toBe(true);
+    expect(zones.some((zone) => zone.lonMin.toFixed(2) === "6.02")).toBe(true);
   });
 
   it("getCachePathForZone returns expected cache path", () => {

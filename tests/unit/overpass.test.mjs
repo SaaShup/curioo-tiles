@@ -20,10 +20,12 @@ const config = require("../../lib/config.js");
 
 const {
     fetchOverpass,
-    getOverpassData
+    getOverpassData,
+    mergeOverpassData
 } = overpass;
 const {
     getZoneFromTile,
+    getZonesFromTile,
     getCachePathForZone
 } = geo;
 const {
@@ -174,6 +176,58 @@ describe("overpass", () => {
             .toString("utf8");
 
         expect(JSON.parse(cachedJson)).toEqual(responseData);
+    });
+
+    it("getOverpassData fetches and merges every zone touched by a tile", async () => {
+        const z16 = 16;
+        const x16 = 33863;
+        const y16 = 22544;
+        const zones = getZonesFromTile(z16, x16, y16);
+        const responses = zones.map((zone, index) => ({
+            elements: [{
+                id: index + 1,
+                type: "way",
+                zone: zone.lonMin.toFixed(2),
+            }],
+        }));
+
+        globalThis.fetch = vi.fn().mockImplementation(async () => ({
+            ok: true,
+            text: async () => JSON.stringify(responses.shift()),
+        }));
+
+        const data = await getOverpassData(z16, x16, y16);
+
+        expect(zones.length).toBeGreaterThan(1);
+        expect(globalThis.fetch).toHaveBeenCalledTimes(zones.length);
+        expect(data.elements).toHaveLength(zones.length);
+
+        for (const zone of zones) {
+            expect(fs.existsSync(`${getCachePathForZone(zone)}.br`)).toBe(true);
+        }
+    });
+
+    it("mergeOverpassData removes duplicate OSM elements across zones", () => {
+        expect(mergeOverpassData([
+            {
+                elements: [
+                    { id: 1, type: "way", tags: { highway: "primary" } },
+                    { id: 2, type: "way" },
+                ],
+            },
+            {
+                elements: [
+                    { id: 1, type: "way", tags: { highway: "primary" } },
+                    { id: 3, type: "node" },
+                ],
+            },
+        ])).toEqual({
+            elements: [
+                { id: 1, type: "way", tags: { highway: "primary" } },
+                { id: 2, type: "way" },
+                { id: 3, type: "node" },
+            ],
+        });
     });
 
     it("getOverpassData saves empty cache when fetch fails", async () => {
