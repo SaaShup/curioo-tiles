@@ -92,6 +92,43 @@ describe("themes", () => {
     expect(loadedThemes.custom.water).toEqual(loadedThemes.forest.water);
   });
 
+  it("merges with empty saved themes by default", async () => {
+    const { mergeThemes } = loadThemesModule();
+    const defaultThemes = {
+      forest: {
+        grass: [1, 2, 3, 255],
+      },
+    };
+
+    expect(mergeThemes(defaultThemes)).toEqual(defaultThemes);
+  });
+
+  it("merges custom themes without forest fallback when no forest default exists", async () => {
+    const { mergeThemes } = loadThemesModule();
+
+    expect(
+      mergeThemes(
+        {
+          city: {
+            water: [1, 2, 3, 255],
+          },
+        },
+        {
+          custom: {
+            grass: [4, 5, 6, 255],
+          },
+        }
+      )
+    ).toEqual({
+      city: {
+        water: [1, 2, 3, 255],
+      },
+      custom: {
+        grass: [4, 5, 6, 255],
+      },
+    });
+  });
+
   it("saves themes next to runtime-config.json in the runtime config directory", async () => {
     const themes = {
       city: {
@@ -155,6 +192,51 @@ describe("themes", () => {
         water: [9, 9, 9, 255],
       },
       city: {
+        grass: [1, 2, 3, 255],
+      },
+    });
+  });
+
+  it("saves custom theme diffs from forest defaults", async () => {
+    process.env.TILE_RUNTIME_CONFIG_FILE = tempDir;
+
+    const { saveTheme } = loadThemesModule();
+
+    saveTheme("custom", {
+      grass: [1, 2, 3, 255],
+      water: [70, 145, 195, 255],
+    });
+
+    expect(
+      JSON.parse(fs.readFileSync(path.join(tempDir, "themes.json"), "utf8"))
+    ).toEqual({
+      custom: {
+        grass: [1, 2, 3, 255],
+      },
+    });
+  });
+
+  it("saves theme diffs without forest fallback when no forest default exists", async () => {
+    process.env.TILE_RUNTIME_CONFIG_FILE = tempDir;
+
+    const { DEFAULT_THEMES_FILE, saveTheme } = loadThemesModule();
+    const originalReadFile = fs.readFileSync.bind(fs);
+    const readFile = vi.spyOn(fs, "readFileSync").mockImplementation((file, encoding) => {
+      if (file === DEFAULT_THEMES_FILE) {
+        return "{}";
+      }
+
+      return originalReadFile(file, encoding);
+    });
+
+    saveTheme("custom", {
+      grass: [1, 2, 3, 255],
+    });
+
+    expect(
+      JSON.parse(fs.readFileSync(path.join(tempDir, "themes.json"), "utf8"))
+    ).toEqual({
+      custom: {
         grass: [1, 2, 3, 255],
       },
     });
