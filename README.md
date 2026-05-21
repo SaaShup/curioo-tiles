@@ -145,6 +145,7 @@ This service exposes Prometheus-compatible metrics at the `/metrics` endpoint (e
 
 - `tile_requests_total{theme,status}` — counter of tile requests by theme and HTTP status.
 - `tile_render_duration_seconds{theme}` — histogram of tile render durations (seconds).
+- `tile_memory_tiles` — gauge of tiles currently being rendered in memory.
 - `overpass_requests_total{status}` — counter of Overpass API requests.
 - `overpass_cache_total{result}` — counter for Overpass cache hits/misses.
 

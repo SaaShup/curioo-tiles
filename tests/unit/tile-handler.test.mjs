@@ -7,6 +7,8 @@ const loadThemes = vi.fn();
 const generateTile = vi.fn();
 const startTimer = vi.fn();
 const inc = vi.fn();
+const incMemory = vi.fn();
+const decMemory = vi.fn();
 const end = vi.fn();
 let defaultThemeName = "forest";
 let tileZoomRange = [18, 18];
@@ -36,6 +38,10 @@ function loadTileHandler() {
   mockModule("../../lib/metrics.js", {
     tileRequests: { inc },
     tileRenderDuration: { startTimer },
+    tileMemoryTiles: {
+      inc: incMemory,
+      dec: decMemory,
+    },
   });
 
   mockModule("../../lib/renderer.js", {
@@ -88,6 +94,8 @@ describe("tile-handler", () => {
     expect(startTimer).not.toHaveBeenCalled();
     expect(generateTile).not.toHaveBeenCalled();
     expect(inc).not.toHaveBeenCalled();
+    expect(incMemory).not.toHaveBeenCalled();
+    expect(decMemory).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -106,6 +114,8 @@ describe("tile-handler", () => {
     expect(startTimer).not.toHaveBeenCalled();
     expect(generateTile).not.toHaveBeenCalled();
     expect(inc).not.toHaveBeenCalled();
+    expect(incMemory).not.toHaveBeenCalled();
+    expect(decMemory).not.toHaveBeenCalled();
   });
 
   it("returns 404 when zoom is not supported", async () => {
@@ -121,6 +131,8 @@ describe("tile-handler", () => {
     expect(startTimer).not.toHaveBeenCalled();
     expect(generateTile).not.toHaveBeenCalled();
     expect(inc).not.toHaveBeenCalled();
+    expect(incMemory).not.toHaveBeenCalled();
+    expect(decMemory).not.toHaveBeenCalled();
   });
 
   it("renders a png tile with cache headers", async () => {
@@ -144,6 +156,8 @@ describe("tile-handler", () => {
       "public, max-age=31536000, immutable"
     );
     expect(res.send).toHaveBeenCalledWith(buffer);
+    expect(incMemory).toHaveBeenCalledOnce();
+    expect(decMemory).toHaveBeenCalledOnce();
     expect(end).toHaveBeenCalled();
   });
 
@@ -185,6 +199,8 @@ describe("tile-handler", () => {
     expect(startTimer).not.toHaveBeenCalled();
     expect(generateTile).not.toHaveBeenCalled();
     expect(inc).not.toHaveBeenCalled();
+    expect(incMemory).not.toHaveBeenCalled();
+    expect(decMemory).not.toHaveBeenCalled();
   });
 
   it("uses a preview theme when one is provided", async () => {
@@ -285,6 +301,8 @@ describe("tile-handler", () => {
 
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.send).toHaveBeenCalledWith("Tile render failed");
+    expect(incMemory).toHaveBeenCalledOnce();
+    expect(decMemory).toHaveBeenCalledOnce();
     expect(end).toHaveBeenCalled();
   });
 });
