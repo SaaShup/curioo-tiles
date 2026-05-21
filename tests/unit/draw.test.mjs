@@ -72,6 +72,11 @@ describe("draw", () => {
     expect(c).not.toBe(a);
   });
 
+  it("noise uses the full 0 to 1 range", () => {
+    expect(noise(93, 28, 100)).toBeGreaterThan(0.99);
+    expect(noise(148, 78, 100)).toBeLessThan(0.01);
+  });
+
   it("drawBackground fills the full tile", () => {
     const png = createPng();
 
@@ -85,6 +90,22 @@ describe("draw", () => {
 
     expect(getPixel(png, 0, 0)[3]).toBe(255);
     expect(getPixel(png, TILE_SIZE - 1, TILE_SIZE - 1)[3]).toBe(255);
+  });
+
+  it("drawBackground applies patch and dot texture branches", () => {
+    const png = createPng();
+
+    const theme = {
+      grass: [100, 100, 100, 255],
+      darkGrass: [20, 30, 40, 255],
+      lightGrass: [210, 220, 230, 255],
+    };
+
+    drawBackground(png, 0, 0, theme);
+
+    expect(getPixel(png, 28, 0)[1]).toBeLessThan(100);
+    expect(getPixel(png, 108, 0)).toEqual([20, 30, 40, 255]);
+    expect(getPixel(png, 92, 0)).toEqual([210, 220, 230, 255]);
   });
 
   it("drawLine draws horizontal and diagonal lines", () => {
@@ -192,5 +213,28 @@ describe("draw", () => {
     });
 
     expect(getPixel(png, 5, 5)[3]).toBe(123);
+  });
+
+  it("drawTexturedPolygon applies dark patches and dots", () => {
+    const png = createPng();
+
+    drawTexturedPolygon(
+      png,
+      [
+        { x: 0, y: 0 },
+        { x: TILE_SIZE - 1, y: 0 },
+        { x: TILE_SIZE - 1, y: TILE_SIZE - 1 },
+        { x: 0, y: TILE_SIZE - 1 },
+      ],
+      [100, 100, 100, 255],
+      {
+        variation: 0,
+        lighten: 0,
+        dotChance: 0.015,
+      }
+    );
+
+    expect(getPixel(png, 40, 0)).toEqual([82, 82, 82, 255]);
+    expect(getPixel(png, 85, 0)).toEqual([75, 75, 75, 255]);
   });
 });
