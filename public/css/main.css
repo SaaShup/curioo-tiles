@@ -235,6 +235,29 @@ footer {
   flex-wrap: wrap;
 }
 
+.quick-links {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.quick-links a {
+  text-decoration: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: white;
+  color: #111827;
+  font-weight: 600;
+  border: 1px solid #d1d5db;
+  transition: all 0.2s ease;
+}
+
+.quick-links a:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
 @media (max-width: 720px) {
   body {
     padding: 24px 14px;

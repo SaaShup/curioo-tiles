@@ -13,10 +13,11 @@
     <section class="hero">
       <div class="header-row">
         <a class="eyebrow" href="/">🗺️ Tile theme index</a>
-        <a class="btn secondary" href="/editor" >
-            🎨  Editor
+        <a class="btn secondary" href="/editor">
+          🎨 Editor
         </a>
       </div>
+
       <h1>Welcome to Tile Editor</h1>
 
       <p class="lead">
@@ -25,11 +26,19 @@
       </p>
 
       <div class="pills">
-        <div class="pill">Configurable zooms</div>
+        <div class="pill">Zoom 18</div>
         <div class="pill">PNG tiles</div>
         <div class="pill">256px</div>
         <div class="pill">Cached zones</div>
         <div class="pill">CuriooCity Ready</div>
+      </div>
+
+      <div class="quick-links">
+        <a href="#tile-api">Tile</a>
+        <a href="#editor-api">Editor</a>
+        <a href="#monitoring">Monitoring</a>
+        <a href="#system-api">System</a>
+        <a href="#auth-api">Auth</a>
       </div>
 
       <div class="status">
@@ -38,209 +47,205 @@
       </div>
     </section>
 
-    <section class="section">
-  <h2>Tile API</h2>
+    <section class="section" id="tile-api">
+      <h2>Tile</h2>
 
-  <div class="endpoint">
-    <div class="method get">GET</div>
+      <div class="endpoint">
+        <div class="method get">GET</div>
 
-    <div>
-      <div class="path">/{z}/{x}/{y}.png</div>
+        <div>
+          <div class="path">/{z}/{x}/{y}.png</div>
 
-      <div class="desc">
-        Default theme tile endpoint. Supported zooms are controlled by TILE_ZOOM_RANGE.
+          <div class="desc">
+            Default theme tile endpoint. Supported zooms are controlled by TILE_ZOOM_RANGE.
+          </div>
+
+          <pre>GET /18/135329/89901.png</pre>
+        </div>
       </div>
 
-      <pre>GET /18/135329/89901.png</pre>
-    </div>
-  </div>
+      <div class="endpoint">
+        <div class="method get">GET</div>
 
-  <div class="endpoint">
-    <div class="method get">GET</div>
+        <div>
+          <div class="path">/{theme}/{z}/{x}/{y}.png</div>
 
-    <div>
-      <div class="path">/{theme}/{z}/{x}/{y}.png</div>
+          <div class="desc">
+            Generate themed tiles using the selected map style.
+          </div>
 
-      <div class="desc">
-        Generate themed tiles using the selected map style.
+<pre>
+GET /forest/18/135329/89901.png
+GET /city/18/135329/89901.png
+GET /space/18/135329/89901.png
+</pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="editor-api">
+      <h2>Editor</h2>
+
+      <div class="endpoint">
+        <div class="method get">GET</div>
+
+        <div>
+          <div class="path">/api/themes</div>
+
+          <div class="desc">
+            Retrieve all available themes.
+          </div>
+
+          <pre>GET /api/themes</pre>
+        </div>
       </div>
 
-      <pre>
-      GET /forest/18/135329/89901.png
-      GET /city/18/135329/89901.png
-      GET /space/18/135329/89901.png
-      </pre>
+      <div class="endpoint">
+        <div class="method put">PUT</div>
+
+        <div>
+          <div class="path">/api/themes/{theme}</div>
+
+          <div class="desc">
+            Save a theme configuration (protected endpoint).
           </div>
+
+          <pre>PUT /api/themes/forest</pre>
         </div>
-      </section>
+      </div>
 
-      <section class="section">
-        <h2>Editor API</h2>
+      <div class="endpoint">
+        <div class="method post">POST</div>
 
-        <div class="endpoint">
-          <div class="method get">GET</div>
+        <div>
+          <div class="path">/api/preview-theme/{theme}</div>
 
-          <div>
-            <div class="path">/api/themes</div>
-
-            <div class="desc">
-              Retrieve all available themes.
-            </div>
-
-            <pre>GET /api/themes</pre>
+          <div class="desc">
+            Apply a temporary preview theme without saving it.
           </div>
+
+          <pre>POST /api/preview-theme/forest</pre>
         </div>
+      </div>
 
-        <div class="endpoint">
-          <div class="method put">PUT</div>
+      <div class="endpoint">
+        <div class="method delete">DELETE</div>
 
-          <div>
-            <div class="path">/api/themes/{theme}</div>
+        <div>
+          <div class="path">/api/preview-theme/{theme}</div>
 
-            <div class="desc">
-              Save a theme configuration (protected endpoint).
-            </div>
-
-            <pre>PUT /api/themes/forest</pre>
+          <div class="desc">
+            Clear the temporary preview theme cache.
           </div>
+
+          <pre>DELETE /api/preview-theme/forest</pre>
         </div>
+      </div>
+    </section>
 
-        <div class="endpoint">
-          <div class="method post">POST</div>
+    <section class="section" id="monitoring">
+      <h2>Monitoring</h2>
 
-          <div>
-            <div class="path">/api/preview-theme/{theme}</div>
+      <div class="endpoint">
+        <div class="method get">GET</div>
 
-            <div class="desc">
-              Apply a temporary preview theme without saving it.
-            </div>
+        <div>
+          <div class="path">/metrics</div>
 
-            <pre>POST /api/preview-theme/forest</pre>
+          <div class="desc">
+            Prometheus-compatible metrics endpoint.
           </div>
+
+          <pre>GET /metrics</pre>
         </div>
+      </div>
 
-        <div class="endpoint">
-          <div class="method delete">DELETE</div>
+      <div class="endpoint">
+        <div class="method get">GET</div>
 
-          <div>
-            <div class="path">/api/preview-theme/{theme}</div>
+        <div>
+          <div class="path">/healthz</div>
 
-            <div class="desc">
-              Clear the temporary preview theme cache.
-            </div>
-
-            <pre>DELETE /api/preview-theme/forest</pre>
+          <div class="desc">
+            Health check endpoint.
           </div>
+
+          <pre>GET /healthz</pre>
         </div>
+      </div>
+    </section>
 
-      </section>
+    <section class="section" id="system-api">
+      <h2>System</h2>
 
+      <div class="endpoint">
+        <div class="method get">GET</div>
 
-      <section class="section">
-        <h2>Monitoring</h2>
+        <div>
+          <div class="path">/api/version</div>
 
-        <div class="endpoint">
-          <div class="method get">GET</div>
-
-          <div>
-            <div class="path">/healthz</div>
-
-            <div class="desc">
-              Health check endpoint. Returns a simple JSON response when the service is running.
-            </div>
-
-            <pre>GET /healthz
-Response: { "ok": true }</pre>
+          <div class="desc">
+            Retrieve the current application version.
           </div>
+
+          <pre>GET /api/version</pre>
         </div>
+      </div>
 
-        <div class="endpoint">
-          <div class="method get">GET</div>
+      <div class="endpoint">
+        <div class="method get">GET</div>
 
-          <div>
-            <div class="path">/metrics</div>
+        <div>
+          <div class="path">/api/config</div>
 
-            <div class="desc">
-              Prometheus metrics endpoint. Exposes default Node.js metrics and CuriooCity tile metrics.
-            </div>
-
-            <pre>GET /metrics</pre>
+          <div class="desc">
+            Retrieve runtime tile configuration.
           </div>
+
+          <pre>GET /api/config</pre>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <section class="section">
-        <h2>Service API</h2>
+    <section class="section" id="auth-api">
+      <h2>Auth</h2>
 
-        <div class="endpoint">
-          <div class="method get">GET</div>
+      <div class="endpoint">
+        <div class="method get">GET</div>
 
-          <div>
-            <div class="path">/api/version</div>
+        <div>
+          <div class="path">/api/login</div>
 
-            <div class="desc">
-              Returns the application version from package.json.
-            </div>
-
-            <pre>GET /api/version
-Response: { "version": "x.y.z" }</pre>
+          <div class="desc">
+            Login route for protected editor actions.
           </div>
+
+          <pre>GET /api/login</pre>
         </div>
+      </div>
 
-        <div class="endpoint">
-          <div class="method get">GET</div>
+      <div class="endpoint">
+        <div class="method get">GET</div>
 
-          <div>
-            <div class="path">/api/config</div>
+        <div>
+          <div class="path">/api/logout</div>
 
-            <div class="desc">
-              Returns public runtime configuration, including the active tile zoom range.
-            </div>
-
-            <pre>GET /api/config
-Response: { "tileZoomRange": [18, 18] }</pre>
+          <div class="desc">
+            Logout current authenticated session.
           </div>
+
+          <pre>GET /api/logout</pre>
         </div>
-      </section>
-
-      <section class="section">
-        <h2>Auth API</h2>
-
-        <div class="endpoint">
-          <div class="method get">GET</div>
-
-          <div>
-            <div class="path">/api/login</div>
-
-            <div class="desc">
-              Login route for protected editor actions using Keycloak.
-            </div>
-
-            <pre>GET /api/login</pre>
-          </div>
-        </div>
-
-        <div class="endpoint">
-          <div class="method get">GET</div>
-
-          <div>
-            <div class="path">/api/logout</div>
-
-            <div class="desc">
-              Logout route for clearing the editor session and returning the user to a public page.
-            </div>
-
-            <pre>GET /api/logout</pre>
-          </div>
-        </div>
-      </section>
+      </div>
+    </section>
 
     <footer>
-      Made for CuriooCity Explorer • A magical map adventure for kids • 
+      Made for CuriooCity Explorer • A magical map adventure for kids •
       <span id="version"></span>
     </footer>
+
+    <script src="js/main.js"></script>
   </main>
-  <script src="js/main.js"></script>
 </body>
 
 </html>
