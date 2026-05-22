@@ -230,6 +230,37 @@ describe("overpass", () => {
         });
     });
 
+    it("mergeOverpassData deduplicates elements that do not have OSM identity", () => {
+        const anonymousElement = {
+            tags: { amenity: "bench" },
+            geometry: [{ lat: 48.6, lon: 6.1 }],
+        };
+        const typedElementWithoutId = {
+            type: "way",
+            tags: { highway: "service" },
+        };
+
+        expect(mergeOverpassData([
+            {
+                elements: [
+                    anonymousElement,
+                    typedElementWithoutId,
+                ],
+            },
+            {
+                elements: [
+                    { ...anonymousElement },
+                    { ...typedElementWithoutId },
+                ],
+            },
+        ])).toEqual({
+            elements: [
+                anonymousElement,
+                typedElementWithoutId,
+            ],
+        });
+    });
+
     it("getOverpassData saves empty cache when fetch fails", async () => {
         vi.useFakeTimers();
         vi.spyOn(console, "error").mockImplementation(() => {});

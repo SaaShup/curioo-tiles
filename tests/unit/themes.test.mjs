@@ -220,7 +220,16 @@ describe("themes", () => {
     process.env.TILE_RUNTIME_CONFIG_FILE = tempDir;
 
     const themesModule = loadThemesModule();
-    const { saveTheme } = themesModule;
+    const { DEFAULT_THEMES_FILE, saveTheme } = themesModule;
+    const readFileSync = fs.readFileSync.bind(fs);
+
+    vi.spyOn(fs, "readFileSync").mockImplementation((file, options) => {
+      if (String(file) === DEFAULT_THEMES_FILE) {
+        return JSON.stringify({});
+      }
+
+      return readFileSync(file, options);
+    });
 
     saveTheme("custom", {
       grass: [1, 2, 3, 255],
