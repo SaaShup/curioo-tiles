@@ -418,6 +418,26 @@ async function loadApiKeys() {
   }
 }
 
+function showEmptyApiKeyRow(message = "Log in to view configured keys") {
+  const apiKeyRow = document.getElementById("apiKeyRow");
+  const apiKeyInput = document.getElementById("apiKeyInput");
+  const apiKeyHint = document.getElementById("apiKeyHint");
+  const toggleButton = document.getElementById("toggleApiKeyBtn");
+
+  if (!apiKeyRow || !apiKeyInput || !toggleButton) {
+    return;
+  }
+
+  currentApiKeys = "";
+  apiKeysHidden = true;
+  apiKeyInput.value = "";
+  apiKeyInput.placeholder = "***********";
+  apiKeyInput.readOnly = true;
+  toggleButton.textContent = "Show";
+  if (apiKeyHint) apiKeyHint.textContent = message;
+  apiKeyRow.style.display = "flex";
+}
+
 function toggleApiKeyVisibility() {
   const apiKeyInput = document.getElementById("apiKeyInput");
   const toggleButton = document.getElementById("toggleApiKeyBtn");
@@ -710,6 +730,7 @@ async function loadUser() {
       if (saveBtn) saveBtn.style.display = "none";
       if (authHint) authHint.style.display = "inline-flex";
       if (cacheToggleLabel) cacheToggleLabel.style.display = "none";
+      showEmptyApiKeyRow();
       return;
     }
 

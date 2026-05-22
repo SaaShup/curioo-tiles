@@ -1,6 +1,7 @@
 const { test, expect } = require("@playwright/test");
 
-const EDITOR_URL = "http://localhost:3000/editor";
+const BASE_URL = `http://localhost:${process.env.PORT || 3000}`;
+const EDITOR_URL = `${BASE_URL}/editor`;
 
 const authenticatedUser = {
   authenticated: true,
@@ -202,6 +203,17 @@ test("editor page loads", async ({ page }) => {
 });
 
 test("theme select changes editor colors", async ({ page }) => {
+  await mockThemes(page, {
+    forest: {
+      background: [255, 255, 255, 255],
+      road: [0, 0, 0, 255],
+    },
+    space: {
+      background: [10, 10, 30, 255],
+      road: [180, 180, 255, 255],
+    },
+  });
+
   await gotoEditor(page);
 
   await page.getByRole("button", { name: "Show pickers" }).click();
@@ -483,6 +495,10 @@ test("editor shows login button when not authenticated", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Save theme" })).toHaveCount(0);
   await expect(page.getByLabel(/Disable cache/i)).toBeHidden();
   await expect(page.getByText("Log in to preview/save")).toBeVisible();
+  await expect(page.locator("#apiKeyRow")).toBeVisible();
+  await expect(page.locator("#apiKeyInput")).toHaveValue("");
+  await expect(page.locator("#apiKeyInput")).toHaveAttribute("placeholder", "***********");
+  await expect(page.getByText("Log in to view configured keys")).toBeVisible();
 });
 
 test("editor shows preview and save buttons when authenticated", async ({ page }) => {
@@ -609,8 +625,8 @@ test("authenticated save button sends save API and shows save status", async ({ 
 });
 
 [
-  ["home", "http://localhost:3000"],
-  ["editor", "http://localhost:3000/editor"],
+  ["home", BASE_URL],
+  ["editor", EDITOR_URL],
 ].forEach(([name, url]) => {
   test(`footer contains version on ${name} page`, async ({ page }) => {
     await page.goto(url);
@@ -626,7 +642,7 @@ test("authenticated save button sends save API and shows save status", async ({ 
 });
 
 test("toggle pickers button hides and shows the editor", async ({ page }) => {
-  await page.goto("http://localhost:3000/editor");
+  await page.goto(EDITOR_URL);
 
   const editor = page.locator("#editor");
   const toggleButton = page.locator("#togglePickersBtn");
@@ -646,7 +662,7 @@ test("toggle pickers button hides and shows the editor", async ({ page }) => {
 });
 
 test("map fullscreen control is visible", async ({ page }) => {
-  await page.goto("http://localhost:3000/editor");
+  await page.goto(EDITOR_URL);
 
   const fullscreenButton = fullscreenControl(page);
 
@@ -655,7 +671,7 @@ test("map fullscreen control is visible", async ({ page }) => {
 
 test("map can enter fullscreen mode", async ({ page }) => {
   await mockFullscreenApi(page);
-  await page.goto("http://localhost:3000/editor");
+  await page.goto(EDITOR_URL);
 
   const fullscreenButton = fullscreenControl(page);
 

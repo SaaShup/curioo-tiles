@@ -4,3 +4,4 @@ cache
 .env
 coverage
 runtime-config.json
+data

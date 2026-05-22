@@ -79,6 +79,7 @@ describe("Metrics API", () => {
     expect(res.statusCode).toBe(200);
     expect(res.headers["content-type"]).toContain("text/plain");
     expect(res.text).toContain("tile_requests_total");
+    expect(res.text).toContain("tile_memory_tiles");
     expect(res.text).toContain("overpass_cache_total");
   });
 });

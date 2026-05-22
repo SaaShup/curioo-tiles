@@ -25,12 +25,14 @@ function loadApiRouter() {
   }));
 
   const saveThemes = vi.fn();
+  const saveTheme = vi.fn();
 
   const metrics = vi.fn(async () => "fake_metrics 1\n");
   let tileZoomRange = [16, 19];
 
   mockModule("../../lib/themes.js", {
     loadThemes,
+    saveTheme,
     saveThemes,
   });
 
@@ -86,6 +88,7 @@ function loadApiRouter() {
     createApiRouter,
     loadThemes,
     saveThemes,
+    saveTheme,
     metrics,
   };
 }
@@ -367,11 +370,10 @@ describe("api router", () => {
       theme: "forest",
     });
 
-    expect(mocks.saveThemes).toHaveBeenCalledWith({
-      forest: {
-        grass: [10, 20, 30, 255],
-      },
+    expect(mocks.saveTheme).toHaveBeenCalledWith("forest", {
+      grass: [10, 20, 30, 255],
     });
+    expect(mocks.saveThemes).not.toHaveBeenCalled();
 
     expect(previewThemes.forest).toBeUndefined();
   });
