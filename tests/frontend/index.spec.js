@@ -26,3 +26,21 @@ test("homepage documents auth endpoints", async ({ page }) => {
   await expect(page.getByText("/api/login", { exact: true })).toBeVisible();
   await expect(page.getByText("/api/logout", { exact: true })).toBeVisible();
 });
+
+test("homepage toggles and remembers dark mode", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await gotoHome(page);
+
+  const toggle = page.getByRole("button", { name: "Switch to dark mode" });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+
+  await toggle.click();
+
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.getByRole("button", { name: "Switch to light mode" })).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem("tile_color_scheme"))).toBe("dark");
+
+  await page.reload();
+
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+});

@@ -5,6 +5,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Tile Editor</title>
+  <script>
+    document.documentElement.dataset.theme =
+      localStorage.getItem("tile_color_scheme") ||
+      (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  </script>
   <link rel="stylesheet" href="css/main.css" />
 </head>
 
@@ -13,9 +18,15 @@
     <section class="hero">
       <div class="header-row">
         <a class="eyebrow" href="/">🗺️ Tile theme index</a>
-        <a class="btn secondary" href="/editor">
-          🎨 Editor
-        </a>
+        <div class="header-actions">
+          <button class="btn secondary theme-toggle" type="button" aria-pressed="false">
+            <span class="theme-toggle-icon" aria-hidden="true">☾</span>
+            <span class="theme-toggle-label">Dark</span>
+          </button>
+          <a class="btn secondary" href="/editor">
+            🎨 Editor
+          </a>
+        </div>
       </div>
 
       <h1>Welcome to Tile Editor</h1>

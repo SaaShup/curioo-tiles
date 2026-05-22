@@ -3,6 +3,11 @@
 <head>
   <meta charset="utf-8">
   <title>Tile Editor</title>
+  <script>
+    document.documentElement.dataset.theme =
+      localStorage.getItem("tile_color_scheme") ||
+      (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  </script>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -20,10 +25,16 @@
         🗺️ Tile theme index
       </a>
 
-      <div id="authBox">
-        <a href="/api/login" class="btn secondary login-btn">
-          🔐 Login
-        </a>
+      <div class="header-actions">
+        <button class="btn secondary theme-toggle" type="button" aria-pressed="false">
+          <span class="theme-toggle-icon" aria-hidden="true">☾</span>
+          <span class="theme-toggle-label">Dark</span>
+        </button>
+        <div id="authBox">
+          <a href="/api/login" class="btn secondary login-btn">
+            🔐 Login
+          </a>
+        </div>
       </div>
     </div>
 
@@ -72,7 +83,7 @@
         <select id="themeSelect"></select>
         <button id="previewBtn" onclick="previewTheme()" class="btn secondary" style="display:none">Preview</button>
         <button id="saveBtn" onclick="saveTheme()" class="btn primary" style="display:none">Save theme</button>
-        <span id="authHint" class="auth-hint" style="margin-left:8px; color:#666;align-items: center;">Log in to preview/save</span>
+        <span id="authHint" class="auth-hint" style="margin-left:8px; color:var(--muted);align-items: center;">Log in to preview/save</span>
         <label class="cache-toggle" style="display:none;">
           <input id="cacheToggle" type="checkbox">
           Disable cache
