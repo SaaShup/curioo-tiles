@@ -8,184 +8,62 @@
 ![Top Language](https://img.shields.io/github/languages/top/SaaShup/curioo-tiles)
 ![CI](https://github.com/SaaShup/curioo-tiles/actions/workflows/tests.yml/badge.svg)
 
-🎨 Fast, local tile preview and theme editor.
+🎨 Fast, local tile preview and theme editor for CuriooCity.
 
-CuriooCity Tile Editor was created to build and serve custom map styles for the game world.
-On top of [Overpass API](https://wiki.openstreetmap.org/wiki/Overpass_API), it allows creators to design colorful and unique environments that make exploration more magical for players.
+CuriooCity Tiles helps creators build and serve custom map styles for the game world. Built on top of [Overpass API](https://wiki.openstreetmap.org/wiki/Overpass_API), it makes exploration more colorful, magical, and themeable.
 
-Features
+## Features
+
 - Edit map theme colors and preview tiles instantly
 - Preview themes without saving, then persist changes
-- Supports Keycloak-based auth for editor actions
+- Serve PNG map tiles from OpenStreetMap / Overpass data
+- Configure tile zoom range and runtime theme storage
+- Protect tile requests with optional API keys
+- Secure editor actions with Keycloak-based authentication
+- Expose Prometheus metrics and use the included Grafana dashboard
 
-## Quick start
+## Quick online start
 
-```
+Try Curioo Tiles instantly with the online demo:
+
+👉 [Launch the demo](https://curioo-tiles-demo1.curioo.city/)
+
+No installation required. Open the demo, choose a map theme, and preview generated tiles directly in your browser.
+
+## Quick local start
+
+```bash
 sudo docker run -p 3000:3000 \
   -e OVERPASS_URL=https://overpass1.curioo.city/api/interpreter \
   saashup/curioo-tiles:latest
 ```
 
-## Start From source code
+Then open:
 
-### Install dependencies
+- <http://localhost:3000/editor>
+
+## Documentation
+
+- [Installation from source](docs/development.md)
+- [Docker usage](docs/docker.md)
+- [Configuration](docs/configuration.md)
+- [Monitoring with Prometheus and Grafana](docs/monitoring.md)
+- [Contributing](docs/contributing.md)
+
+## Common commands
 
 ```bash
 npm install
-npx playwright install --with-deps
-```
-
-### Test
-- API unit tests: `npm run test:api` (uses `vitest`)
-- Frontend end-to-end: `npm run test:frontend` (uses Playwright)
-- Full test suite: `npm run test`
-
-### Create a `.env` then run locally:
-
-Create a `.env` file in the project root to set local defaults. The server uses `dotenv` when running locally.
-
-Example `.env`:
-
-```env
-# Standard server Configuration
-NODE_ENV=production
-PORT=3000
-DEBUG=false
-
-# Tile server setup
-THEME=forest
-OVERPASS_URL=https://${OVERPASS_URL}
-# Inclusive tile zoom range as [from,to]. Defaults to [18,18].
-# from must be >= 3 and to must be <= 20.
-# Editor changes are persisted under TILE_RUNTIME_CONFIG_FILE.
-# Set it to a directory to store runtime-config.json and themes.json together.
-TILE_ZOOM_RANGE=[18,18]
-TILE_RUNTIME_CONFIG_FILE=data
-
-# Tile API key protection
-# Leave TILE_API_KEYS empty to allow public tile requests.
-# Set this to a JSON array or a comma-separated list of accepted keys.
-# Supported query parameters: key, apikey, api_key
-TILE_API_KEYS=["secret123"]
-
-# Keycloak / auth defaults
-# Authentication may work on any provider but not tested yet
-ALLOWED_EDITOR_EMAILS=""
-KEYCLOAK_REALM="${REALM}"
-KEYCLOAK_URL="${KEYCLOAK_URL}"
-KEYCLOAK_SSL_REQUIRED="external"
-KEYCLOAK_CLIENT_ID="${CLIENT_ID}"
-KEYCLOAK_CLIENT_SECRET="${CLIENT_SECRET}"
-KEYCLOAK_CONFIDENTIAL_PORT=0
-```
-
-Notes
-- Values in `.env` are used by `npm run dev`. You can still override any value with environment variables (for example when running Docker with `-e`).
-- The built-in `dev` script now reads from `.env` instead of hardcoding `THEME` and `OVERPASS_URL`.
-
-### Run
-
-```bash
 npm run dev
+npm run test
 ```
 
-### Open the editor in your browser:
+## Grafana dashboard
 
-- http://localhost:3000/editor
+A ready-to-import Grafana dashboard is included here:
 
-## Using Docker
+👉 [Download the Grafana dashboard](public/grafana-dashboard.json)
 
-Build an image:
+## License
 
-```bash
-sudo docker build -t saashup/curioo-tiles .
-```
-
-Run with custom Overpass URL (example):
-
-```bash
-sudo docker run -p 3000:3000 \
-  -e OVERPASS_URL=https://overpass1.curioo.city/api/interpreter \
-  saashup/curioo-tiles:latest
-```
-
-Run with a custom tile zoom range:
-
-```bash
-sudo docker run -p 3000:3000 \
-  -e OVERPASS_URL=https://overpass1.curioo.city/api/interpreter \
-  -e TILE_ZOOM_RANGE='[16,19]' \
-  saashup/curioo-tiles:latest
-```
-
-Persist editor changes to the runtime tile zoom range and saved themes with a Docker volume:
-
-```bash
-sudo docker run -p 3000:3000 \
-  -e OVERPASS_URL=https://overpass1.curioo.city/api/interpreter \
-  -e TILE_RUNTIME_CONFIG_FILE=/data \
-  -v curioo-tiles-data:/data \
-  saashup/curioo-tiles:latest
-```
-
-Run with API key protection enabled:
-
-```bash
-sudo docker run -p 3000:3000 \
-  -e OVERPASS_URL=https://overpass1.curioo.city/api/interpreter \
-  -e TILE_API_KEYS='["secret123"]' \
-  saashup/curioo-tiles:latest
-```
-
-## Monitoring
-
-### Prometheus 
-
-This service exposes Prometheus-compatible metrics at the `/metrics` endpoint (exported using `prom-client`). Metrics include default NodeJS process metrics plus these application-specific metrics:
-
-- `tile_requests_total{theme,status}` — counter of tile requests by theme and HTTP status.
-- `tile_render_duration_seconds{theme}` — histogram of tile render durations (seconds).
-- `tile_memory_tiles` — gauge of tiles currently being rendered in memory.
-- `overpass_requests_total{status}` — counter of Overpass API requests.
-- `overpass_cache_total{result}` — counter for Overpass cache hits/misses.
-
-Prometheus scrape config example:
-
-```yaml
-scrape_configs:
-	- job_name: 'curioo_tiles'
-		static_configs:
-			- targets: ['localhost:3000']
-		metrics_path: '/metrics'
-		scheme: http
-```
-
-### Grafana
-
-A ready-to-import Grafana dashboard is included for monitoring CuriooCity Tiles with Prometheus.
-
-The dashboard provides:
-
-- Tile request rate monitoring
-- Total tile requests
-- HTTP status distribution
-- Overpass cache statistics
-- 4xx / 5xx error monitoring
-- Successful request tracking
-
-Import the dashboard JSON file into Grafana. 
-You can [Download Grafana Dashboard here](public/grafana-dashboard.json)
-
-Notes:
-- If your instance is behind authentication (Keycloak), ensure Prometheus can access `/metrics` (allowlist the IP or configure an unauthenticated metrics endpoint), or use a pull-proxy or Pushgateway.
-- You can import the metrics into Grafana and build dashboards around `tile_render_duration_seconds` and `tile_requests_total` for latency and usage insights.
-
-Development tips
-- Edit themes in `public/js/editor.js` and `public/editor.html` for UI tweaks
-- Preview changes instantly using the editor's Preview button (requires login)
-
-Contributing
-- Open a PR and describe the change. Keep changes focused and test locally.
-
-License
-- MIT-style (see project files)
+MIT-style. See the project license file.
