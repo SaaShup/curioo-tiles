@@ -1,13 +1,76 @@
 :root {
   --bg1: #eef7ff;
   --bg2: #f9fbff;
+  --bg-accent: #dbeafe;
   --card: #ffffff;
+  --card-translucent: rgba(255, 255, 255, 0.92);
   --text: #1f2937;
   --muted: #6b7280;
   --blue: #2563eb;
   --blue2: #dbeafe;
+  --blue-text: #1d4ed8;
   --border: #e5e7eb;
   --code: #111827;
+  --code-bg: #0f172a;
+  --code-text: #e5e7eb;
+  --surface: #ffffff;
+  --surface-soft: #f8fafc;
+  --surface-muted: #f3f4f6;
+  --surface-disabled: #eef2f7;
+  --quick-link-bg: #ffffff;
+  --quick-link-hover: #f3f4f6;
+  --quick-link-border: #d1d5db;
+  --quick-link-hover-border: #9ca3af;
+  --shadow-hero: 0 24px 70px rgba(15, 23, 42, 0.10);
+  --shadow-section: 0 12px 40px rgba(15, 23, 42, 0.06);
+  --status-text: #15803d;
+  --status-dot: #22c55e;
+  --status-ring: rgba(34, 197, 94, 0.14);
+  --focus-ring: rgba(37, 99, 235, 0.12);
+  --primary-text: #ffffff;
+  --method-get: #2563eb;
+  --method-post: #16a34a;
+  --method-put: #d97706;
+  --method-delete: #dc2626;
+  --method-text: #ffffff;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg1: #101827;
+  --bg2: #070b12;
+  --bg-accent: rgba(59, 130, 246, 0.22);
+  --card: #111827;
+  --card-translucent: rgba(17, 24, 39, 0.9);
+  --text: #e5e7eb;
+  --muted: #a7b0c0;
+  --blue: #60a5fa;
+  --blue2: rgba(96, 165, 250, 0.16);
+  --blue-text: #bfdbfe;
+  --border: #263244;
+  --code: #f8fafc;
+  --code-bg: #050814;
+  --code-text: #e5e7eb;
+  --surface: #0f172a;
+  --surface-soft: #172033;
+  --surface-muted: #141e2f;
+  --surface-disabled: #1e293b;
+  --quick-link-bg: #111827;
+  --quick-link-hover: #1e293b;
+  --quick-link-border: #334155;
+  --quick-link-hover-border: #64748b;
+  --shadow-hero: 0 24px 70px rgba(0, 0, 0, 0.38);
+  --shadow-section: 0 12px 40px rgba(0, 0, 0, 0.28);
+  --status-text: #86efac;
+  --status-dot: #4ade80;
+  --status-ring: rgba(74, 222, 128, 0.16);
+  --focus-ring: rgba(96, 165, 250, 0.22);
+  --primary-text: #07111f;
+  --method-get: #3b82f6;
+  --method-post: #22c55e;
+  --method-put: #f59e0b;
+  --method-delete: #ef4444;
+  --method-text: #07111f;
 }
 
 * {
@@ -20,7 +83,7 @@ body {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: var(--text);
   background:
-    radial-gradient(circle at top left, #dbeafe 0, transparent 34%),
+    radial-gradient(circle at top left, var(--bg-accent) 0, transparent 34%),
     linear-gradient(180deg, var(--bg1), var(--bg2));
   padding: 40px 18px;
 }
@@ -31,11 +94,11 @@ body {
 }
 
 .hero {
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(229, 231, 235, 0.9);
+  background: var(--card-translucent);
+  border: 1px solid var(--border);
   border-radius: 28px;
   padding: 34px;
-  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.10);
+  box-shadow: var(--shadow-hero);
 }
 
 .eyebrow {
@@ -45,7 +108,7 @@ body {
   padding: 8px 13px;
   border-radius: 999px;
   background: var(--blue2);
-  color: #1d4ed8;
+  color: var(--blue-text);
   font-weight: 700;
   font-size: 13px;
   margin-bottom: 18px;
@@ -54,14 +117,14 @@ body {
 .eyebrow:visited,
 .eyebrow:hover {
   text-decoration: none;
-  color: #1d4ed8;
+  color: var(--blue-text);
 }
 
 h1 {
   margin: 0;
   font-size: clamp(34px, 5vw, 58px);
   line-height: 1.02;
-  letter-spacing: -0.04em;
+  letter-spacing: 0;
 }
 
 .lead {
@@ -92,13 +155,32 @@ h1 {
 
 .btn.primary {
   background: var(--blue);
-  color: white;
+  color: var(--primary-text);
 }
 
 .btn.secondary {
-  background: #f3f4f6;
+  background: var(--surface-muted);
   color: var(--text);
   border: 1px solid var(--border);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.theme-toggle-icon {
+  width: 1em;
+  text-align: center;
 }
 
 .pills {
@@ -109,12 +191,12 @@ h1 {
 }
 
 .pill {
-  background: #f8fafc;
+  background: var(--surface-soft);
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 9px 13px;
   font-size: 14px;
-  color: #374151;
+  color: var(--text);
 }
 
 .status {
@@ -122,7 +204,7 @@ h1 {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #15803d;
+  color: var(--status-text);
   font-weight: 800;
   font-size: 14px;
 }
@@ -131,8 +213,8 @@ h1 {
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: #22c55e;
-  box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.14);
+  background: var(--status-dot);
+  box-shadow: 0 0 0 5px var(--status-ring);
 }
 
 .section {
@@ -141,13 +223,13 @@ h1 {
   border: 1px solid var(--border);
   border-radius: 24px;
   padding: 26px;
-  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.06);
+  box-shadow: var(--shadow-section);
 }
 
 h2 {
   margin: 0 0 14px;
   font-size: 24px;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .endpoint {
@@ -170,24 +252,24 @@ h2 {
   padding: 6px 10px;
   font-weight: 900;
   font-size: 12px;
-  background: #2563eb;
-  color: white;
+  background: var(--method-get);
+  color: var(--method-text);
 }
 
 .method.get {
-  background: #2563eb;
+  background: var(--method-get);
 }
 
 .method.post {
-  background: #16a34a;
+  background: var(--method-post);
 }
 
 .method.put {
-  background: #d97706;
+  background: var(--method-put);
 }
 
 .method.delete {
-  background: #dc2626;
+  background: var(--method-delete);
 }
 
 .path {
@@ -205,8 +287,8 @@ h2 {
 code,
 pre {
   display: block;
-  background: #0f172a;
-  color: #e5e7eb;
+  background: var(--code-bg);
+  color: var(--code-text);
   border-radius: 16px;
   padding: 16px;
   overflow-x: auto;
@@ -246,16 +328,16 @@ footer {
   text-decoration: none;
   padding: 10px 16px;
   border-radius: 8px;
-  background: white;
-  color: #111827;
+  background: var(--quick-link-bg);
+  color: var(--text);
   font-weight: 600;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--quick-link-border);
   transition: all 0.2s ease;
 }
 
 .quick-links a:hover {
-  background: #f3f4f6;
-  border-color: #9ca3af;
+  background: var(--quick-link-hover);
+  border-color: var(--quick-link-hover-border);
 }
 
 @media (max-width: 720px) {

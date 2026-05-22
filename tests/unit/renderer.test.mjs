@@ -98,6 +98,37 @@ describe("renderer", () => {
     }).not.toThrow();
   });
 
+  it("drawOsmElement ignores elements with non-array geometry", () => {
+    const png = createPng();
+
+    expect(() => {
+      drawOsmElement(
+        png,
+        {
+          geometry: { lat: 0.2, lon: 0.2 },
+          tags: { highway: "primary" },
+        },
+        tileBbox,
+        theme
+      );
+    }).not.toThrow();
+  });
+
+  it("drawOsmElement ignores geometry with no drawable tags", () => {
+    const png = createPng();
+
+    expect(() => {
+      drawOsmElement(
+        png,
+        {
+          geometry: lineGeometry,
+        },
+        tileBbox,
+        theme
+      );
+    }).not.toThrow();
+  });
+
   it("drawOsmElement draws waterway line types", () => {
     const png = createPng();
 
@@ -204,6 +235,15 @@ describe("renderer", () => {
 
     expect(Buffer.isBuffer(buffer)).toBe(true);
     expect(buffer.length).toBeGreaterThan(0);
+    expect(buffer.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
+  });
+
+  it("generateTile treats missing elements as an empty list", async () => {
+    mockGetOverpassData.mockResolvedValue({});
+
+    const buffer = await generateTile(18, 135540, 90176, theme);
+
+    expect(Buffer.isBuffer(buffer)).toBe(true);
     expect(buffer.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
   });
 
