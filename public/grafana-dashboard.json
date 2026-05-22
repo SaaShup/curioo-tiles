@@ -1,6 +1,6 @@
 {
-  "title": "Tile Server Metrics",
-  "uid": "tilesserver",
+  "title": "Curioo-Tiles",
+  "uid": "curioo-tiles",
   "schemaVersion": 39,
   "version": 2,
   "refresh": "10s",
@@ -11,7 +11,7 @@
     "prometheus"
   ],
   "time": {
-    "from": "now-6h",
+    "from": "now-1h",
     "to": "now"
   },
   "editable": true,
@@ -33,6 +33,29 @@
         "regex": "",
         "skipUrlSync": false,
         "options": []
+      },
+      {
+        "name": "INSTANCE",
+        "type": "query",
+        "label": "Instance",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "definition": "label_values(tile_requests_total, instance)",
+        "query": {
+          "query": "label_values(tile_requests_total, instance)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "includeAll": true,
+        "multi": false,
+        "sort": 1,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        }
       }
     ]
   },
@@ -58,7 +81,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(rate(tile_requests_total[5m]))",
+          "expr": "sum(rate(tile_requests_total{instance=~\"$INSTANCE\"}[5m]))",
           "legendFormat": "requests/sec",
           "range": true,
           "refId": "A"
@@ -143,7 +166,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(tile_requests_total)",
+          "expr": "sum(tile_requests_total{instance=~\"$INSTANCE\"})",
           "legendFormat": "total",
           "range": true,
           "refId": "A"
@@ -212,7 +235,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum by (status) (rate(tile_requests_total[5m]))",
+          "expr": "sum by (status) (rate(tile_requests_total{instance=~\"$INSTANCE\"}[5m]))",
           "legendFormat": "{{status}}",
           "range": true,
           "refId": "A"
@@ -297,7 +320,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum by (type) (overpass_cache_total)",
+          "expr": "sum by (type) (overpass_cache_total{instance=~\"$INSTANCE\"})",
           "legendFormat": "{{type}}",
           "range": true,
           "refId": "A"
@@ -382,7 +405,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(rate(tile_requests_total{status=~\"5..\"}[5m])) or vector(0)",
+          "expr": "sum(rate(tile_requests_total{instance=~\"$INSTANCE\",status=~\"5..\"}[5m])) or vector(0)",
           "legendFormat": "5xx/sec",
           "range": true,
           "refId": "A"
@@ -451,7 +474,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(rate(tile_requests_total{status=~\"4..\"}[5m])) or vector(0)",
+          "expr": "sum(rate(tile_requests_total{instance=~\"$INSTANCE\",status=~\"4..\"}[5m])) or vector(0)",
           "legendFormat": "4xx/sec",
           "range": true,
           "refId": "A"
@@ -520,7 +543,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(rate(tile_requests_total{status=\"200\"}[5m])) or vector(0)",
+          "expr": "sum(rate(tile_requests_total{instance=~\"$INSTANCE\",status=\"200\"}[5m])) or vector(0)",
           "legendFormat": "200/sec",
           "range": true,
           "refId": "A"
@@ -589,7 +612,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "tile_memory_tiles",
+          "expr": "tile_memory_tiles{instance=~\"$INSTANCE\"}",
           "legendFormat": "tiles",
           "range": true,
           "refId": "A"
