@@ -74,6 +74,10 @@ async function mockConfig(page, payload = defaultConfig) {
   );
 }
 
+async function gotoHome(page) {
+  await page.goto(BASE_URL);
+}
+
 async function gotoEditor(page) {
   await page.goto(EDITOR_URL);
 }
