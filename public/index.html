@@ -39,7 +39,7 @@
     </section>
 
     <section class="section">
-  <h2>Tile Api</h2>
+  <h2>Tile API</h2>
 
   <div class="endpoint">
     <div class="method get">GET</div>
@@ -75,7 +75,7 @@
       </section>
 
       <section class="section">
-        <h2>Editor Api</h2>
+        <h2>Editor API</h2>
 
         <div class="endpoint">
           <div class="method get">GET</div>
@@ -133,6 +133,79 @@
           </div>
         </div>
 
+      </section>
+
+
+      <section class="section">
+        <h2>Monitoring</h2>
+
+        <div class="endpoint">
+          <div class="method get">GET</div>
+
+          <div>
+            <div class="path">/healthz</div>
+
+            <div class="desc">
+              Health check endpoint. Returns a simple JSON response when the service is running.
+            </div>
+
+            <pre>GET /healthz
+Response: { "ok": true }</pre>
+          </div>
+        </div>
+
+        <div class="endpoint">
+          <div class="method get">GET</div>
+
+          <div>
+            <div class="path">/metrics</div>
+
+            <div class="desc">
+              Prometheus metrics endpoint. Exposes default Node.js metrics and CuriooCity tile metrics.
+            </div>
+
+            <pre>GET /metrics</pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Service API</h2>
+
+        <div class="endpoint">
+          <div class="method get">GET</div>
+
+          <div>
+            <div class="path">/api/version</div>
+
+            <div class="desc">
+              Returns the application version from package.json.
+            </div>
+
+            <pre>GET /api/version
+Response: { "version": "x.y.z" }</pre>
+          </div>
+        </div>
+
+        <div class="endpoint">
+          <div class="method get">GET</div>
+
+          <div>
+            <div class="path">/api/config</div>
+
+            <div class="desc">
+              Returns public runtime configuration, including the active tile zoom range.
+            </div>
+
+            <pre>GET /api/config
+Response: { "tileZoomRange": [18, 18] }</pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Auth API</h2>
+
         <div class="endpoint">
           <div class="method get">GET</div>
 
@@ -140,10 +213,24 @@
             <div class="path">/api/login</div>
 
             <div class="desc">
-              Login route for protected theme saving using Keycloak.
+              Login route for protected editor actions using Keycloak.
             </div>
 
             <pre>GET /api/login</pre>
+          </div>
+        </div>
+
+        <div class="endpoint">
+          <div class="method get">GET</div>
+
+          <div>
+            <div class="path">/api/logout</div>
+
+            <div class="desc">
+              Logout route for clearing the editor session and returning the user to a public page.
+            </div>
+
+            <pre>GET /api/logout</pre>
           </div>
         </div>
       </section>
