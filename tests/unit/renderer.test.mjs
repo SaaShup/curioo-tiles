@@ -19,11 +19,16 @@ require.cache[overpassPath] = {
 const renderer = require("../../lib/renderer.js");
 const config = require("../../lib/config.js");
 
-const { roadWidth, drawOsmElement, generateTile } = renderer;
+const { roadWidth, drawOsmElement, drawRoadElement, drawRoads, generateTile } = renderer;
 const { TILE_SIZE } = config;
 
 function createPng() {
   return new PNG({ width: TILE_SIZE, height: TILE_SIZE });
+}
+
+function getPixel(png, x, y) {
+  const idx = (y * TILE_SIZE + x) << 2;
+  return Array.from(png.data.subarray(idx, idx + 4));
 }
 
 const theme = {
@@ -224,6 +229,56 @@ describe("renderer", () => {
         );
       }).not.toThrow();
     }
+  });
+
+  it("drawRoadElement ignores elements that are not drawable roads", () => {
+    const png = createPng();
+
+    expect(() => {
+      drawRoadElement(png, { tags: { highway: "primary" } }, tileBbox, theme);
+      drawRoadElement(
+        png,
+        { geometry: { lat: 0.2, lon: 0.2 }, tags: { highway: "primary" } },
+        tileBbox,
+        theme
+      );
+      drawRoadElement(
+        png,
+        { geometry: lineGeometry, tags: { building: "yes" } },
+        tileBbox,
+        theme
+      );
+      drawRoadElement(
+        png,
+        { geometry: lineGeometry },
+        tileBbox,
+        theme
+      );
+    }).not.toThrow();
+  });
+
+  it("drawRoads keeps split road joins filled with the inner road color", () => {
+    const png = createPng();
+    const splitRoads = [
+      {
+        geometry: [
+          { lat: 0.5, lon: 0.2 },
+          { lat: 0.5, lon: 0.5 },
+        ],
+        tags: { highway: "primary" },
+      },
+      {
+        geometry: [
+          { lat: 0.5, lon: 0.5 },
+          { lat: 0.8, lon: 0.5 },
+        ],
+        tags: { highway: "primary" },
+      },
+    ];
+
+    drawRoads(png, splitRoads, tileBbox, theme);
+
+    expect(getPixel(png, 123, 128)).toEqual(theme.roadInner);
   });
 
   it("generateTile returns a PNG buffer", async () => {
