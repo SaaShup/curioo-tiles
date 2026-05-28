@@ -1,6 +1,6 @@
 {
   "name": "tiles",
-  "version": "2.7.0",
+  "version": "2.7.1",
   "description": "Lightweight PNG tile server with real-time map theme editor",
   "author": "SaaShup - CuriooCity",
   "main": "server.js",
