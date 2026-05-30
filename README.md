@@ -30,7 +30,7 @@ Try Curioo Tiles instantly with the online demo:
 
 No installation required. Open the demo, choose a map theme, and preview generated tiles directly in your browser.
 
-## Deploy with SaaShup
+## Deploy with [SaaShup](https://saashup.com)
 
 <p align="center">
   <a href="https://admin.curioo.city/order?template=curiootiles" target="_blank">
