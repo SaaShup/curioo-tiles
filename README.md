@@ -30,6 +30,10 @@ Try Curioo Tiles instantly with the online demo:
 
 No installation required. Open the demo, choose a map theme, and preview generated tiles directly in your browser.
 
+## Deploy with SaaShup
+
+[![SaaShup](https://img.shields.io/badge/SaaShup-Image-2496ED)]([https://hub.docker.com](https://admin.curioo.city/order?template=curiootiles))
+
 ## Quick local start
 
 ```bash
