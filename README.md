@@ -30,10 +30,10 @@ Try Curioo Tiles instantly with the online demo:
 
 No installation required. Open the demo, choose a map theme, and preview generated tiles directly in your browser.
 
-## Deploy with [SaaShup](https://saashup.com)
+## Deploy with [SaaShup](admin.curioo.city)
 
 <p align="center">
-  <a href="https://admin.curioo.city/order?template=curiootiles" target="_blank">
+  <a href="https://admin.curioo.city/order?template=curiootiles">
     <img width="256" height="128" alt="launch-saashup" src="https://github.com/user-attachments/assets/9079090b-e196-4b3a-920b-b59e08f9b0b0" />
   </a>
 </p>
@@ -42,7 +42,7 @@ No installation required. Open the demo, choose a map theme, and preview generat
 
 ```bash
 sudo docker run -p 3000:3000 \
-  -e OVERPASS_URL=https://overpass1.curioo.city/api/interpreter \
+  -e OVERPASS_URL=https://overpass/api/interpreter \
   saashup/curioo-tiles:latest
 ```
 
