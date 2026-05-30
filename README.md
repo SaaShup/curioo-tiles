@@ -32,7 +32,10 @@ No installation required. Open the demo, choose a map theme, and preview generat
 
 ## Deploy with SaaShup
 
-[![SaaShup](https://img.shields.io/badge/@-SaaShup-2496ED)]([https://hub.docker.com](https://admin.curioo.city/order?template=curiootiles))
+<a href="https://admin.curioo.city/order?template=curiootiles" target="_blank">
+  <img width="1774" height="887" alt="launch-saashup" src="https://github.com/user-attachments/assets/9079090b-e196-4b3a-920b-b59e08f9b0b0" />
+</a>
+
 
 ## Quick local start
 
