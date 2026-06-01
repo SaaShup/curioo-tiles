@@ -1,6 +1,3 @@
-<img width="1536" height="1024" alt="ChatGPT Image Jun 1, 2026, 01_53_31 PM" src="https://github.com/user-attachments/assets/46c5bd44-483e-4c50-af22-90f7729e5128" />
-<img width="1536" height="1024" alt="ChatGPT Image Jun 1, 2026, 01_53_31 PM" src="https://github.com/user-attachments/assets/9e7bc984-449e-4e00-92fe-d69174ce4356" />
-<img width="1536" height="1024" alt="ChatGPT Image Jun 1, 2026, 01_53_31 PM" src="https://github.com/user-attachments/assets/5c724ebc-ce18-4414-8513-91c851e70b7d" />
 # CuriooCity Tiles
 
 ![Version](https://img.shields.io/github/package-json/v/SaaShup/curioo-tiles)
