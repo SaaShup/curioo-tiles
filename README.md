@@ -34,7 +34,7 @@ No installation required. Open the demo, choose a map theme, and preview generat
 
 <p align="center">
   <a href="https://admin.curioo.city/order?template=curiootiles">
-    <img width="320" height="150" alt="download" src="https://github.com/user-attachments/assets/0f995048-29d6-4f68-b456-b051573774ec" />
+    <img width="1536" height="1024" alt="ChatGPT Image Jun 1, 2026, 03_16_51 PM" src="https://github.com/user-attachments/assets/5a7de074-f3c2-4ef6-8dea-ec42ef972665" />
   </a>
 </p>
 
