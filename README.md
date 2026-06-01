@@ -34,7 +34,7 @@ No installation required. Open the demo, choose a map theme, and preview generat
 
 <p align="center">
   <a href="https://admin.curioo.city/order?template=curiootiles">
-    <img width="384" height="256" alt="saashup-launch-rgba" src="https://github.com/user-attachments/assets/30aeca78-b1f5-468b-8a04-ad425e4576fb" />
+    <img width="320" height="150" alt="download" src="https://github.com/user-attachments/assets/0f995048-29d6-4f68-b456-b051573774ec" />
   </a>
 </p>
 
