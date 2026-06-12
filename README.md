@@ -33,7 +33,7 @@ No installation required. Open the demo, choose a map theme, and preview generat
 ## Deploy with [SaaShup](https://admin.curioo.city)
 
 <p align="center">
-  <a href="https://admin.curioo.city/order?template=curiootiles">
+  <a href="https://admin.curioo.city/order?template=curioo-tiles">
     <img width="420" height="96" alt="saashup-deploy" src="https://github.com/user-attachments/assets/eedc0f1a-2912-469a-b44c-7f917cdbb960" />
   </a>
 </p>
