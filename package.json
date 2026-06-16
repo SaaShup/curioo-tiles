@@ -39,6 +39,6 @@
     "dotenv-cli": "^11.0.0",
     "start-server-and-test": "^3.0.7",
     "supertest": "^7.2.2",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.9"
   }
 }
