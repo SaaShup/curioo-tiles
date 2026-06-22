@@ -25,6 +25,181 @@ const tinyPng = Buffer.from(
   "base64"
 );
 const forestTileZoomPathPattern = /^\/forest\/(\d+)\//;
+const leafletTestStub = `
+(() => {
+  class MapStub {
+    constructor(id, options = {}) {
+      this._container = document.getElementById(id);
+      this._zoom = options.zoom || 18;
+      this._handlers = {};
+      this._layers = new Set();
+      this._container.classList.add("leaflet-container");
+      const pane = document.createElement("div");
+      pane.className = "leaflet-pane";
+      this._container.appendChild(pane);
+      const zoomControl = document.createElement("div");
+      zoomControl.className = "leaflet-control-zoom";
+      this._container.appendChild(zoomControl);
+    }
+
+    setView(_center, zoom) {
+      if (Number.isFinite(zoom)) this._zoom = zoom;
+      this._emit("zoomend");
+      this._redrawLayers();
+      return this;
+    }
+
+    setZoom(zoom) {
+      this._zoom = zoom;
+      this._emit("zoomend");
+      this._redrawLayers();
+      return this;
+    }
+
+    getZoom() {
+      return this._zoom;
+    }
+
+    setMinZoom(zoom) {
+      this._minZoom = zoom;
+      return this;
+    }
+
+    setMaxZoom(zoom) {
+      this._maxZoom = zoom;
+      return this;
+    }
+
+    invalidateSize() {
+      return this;
+    }
+
+    on(event, handler) {
+      this._handlers[event] = this._handlers[event] || [];
+      this._handlers[event].push(handler);
+      return this;
+    }
+
+    addControl(control) {
+      this._container.appendChild(control.onAdd(this));
+      return this;
+    }
+
+    removeLayer(layer) {
+      this._layers.delete(layer);
+      return this;
+    }
+
+    getContainer() {
+      return this._container;
+    }
+
+    _addLayer(layer) {
+      this._layers.add(layer);
+      this._drawLayer(layer);
+      return this;
+    }
+
+    _drawLayer(layer) {
+      layer.createTile({ z: this._zoom, x: 135329, y: 89901 }, () => {});
+    }
+
+    _redrawLayers() {
+      this._layers.forEach((layer) => this._drawLayer(layer));
+    }
+
+    _emit(event) {
+      (this._handlers[event] || []).forEach((handler) => handler());
+    }
+  }
+
+  class TileLayerStub {
+    constructor(urlTemplate, options = {}) {
+      this._url = urlTemplate;
+      this.options = options;
+    }
+
+    static extend(definition) {
+      return class ExtendedTileLayer extends TileLayerStub {
+        createTile(coords, done) {
+          return definition.createTile.call(this, coords, done);
+        }
+      };
+    }
+
+    addTo(map) {
+      this._map = map;
+      map._addLayer(this);
+      return this;
+    }
+
+    getTileUrl(coords) {
+      return this._url
+        .replace("{z}", coords.z)
+        .replace("{x}", coords.x)
+        .replace("{y}", coords.y);
+    }
+  }
+
+  class ControlStub {
+    static extend(definition) {
+      return class ExtendedControl extends ControlStub {
+        constructor(options = {}) {
+          super();
+          this.options = { ...(definition.options || {}), ...options };
+        }
+
+        onAdd(map) {
+          return definition.onAdd.call(this, map);
+        }
+      };
+    }
+  }
+
+  window.L = {
+    map: (id, options) => new MapStub(id, options),
+    TileLayer: TileLayerStub,
+    Control: ControlStub,
+    DomUtil: {
+      create(tagName, className, container) {
+        const element = document.createElement(tagName);
+        if (className) element.className = className;
+        if (container) container.appendChild(element);
+        return element;
+      },
+    },
+    DomEvent: {
+      disableClickPropagation() {},
+      on(element, event, handler) {
+        element.addEventListener(event, handler);
+      },
+      preventDefault(event) {
+        event.preventDefault();
+      },
+    },
+  };
+})();
+`;
+
+async function mockLeafletAssets(page) {
+  await page.addInitScript(leafletTestStub);
+  await page.route("https://unpkg.com/leaflet/dist/leaflet.css", route =>
+    route.fulfill({ status: 200, contentType: "text/css", body: "" })
+  );
+  await page.route("https://unpkg.com/leaflet.fullscreen@1.6.0/Control.FullScreen.css", route =>
+    route.fulfill({ status: 200, contentType: "text/css", body: "" })
+  );
+  await page.route("https://unpkg.com/leaflet/dist/leaflet.js", route =>
+    route.fulfill({ status: 204, contentType: "application/javascript", body: "" })
+  );
+  await page.route("https://unpkg.com/leaflet.fullscreen@1.6.0/Control.FullScreen.js", route =>
+    route.fulfill({ status: 204, contentType: "application/javascript", body: "" })
+  );
+}
+
+test.beforeEach(async ({ page }) => {
+  await mockLeafletAssets(page);
+});
 
 async function mockApiMe(page, payload = authenticatedUser) {
   await page.route("**/api/me", route =>
@@ -38,6 +213,16 @@ async function mockApiMe(page, payload = authenticatedUser) {
 
 async function mockThemes(page, payload = defaultThemes) {
   await page.route("**/api/themes", route =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(payload),
+    })
+  );
+}
+
+async function mockTileApiKeys(page, payload = { keys: [] }) {
+  await page.route("**/api/tile-api-keys", route =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -86,15 +271,37 @@ async function setupAuthenticatedEditor(page) {
   await mockConfig(page);
   await mockApiMe(page);
   await mockThemes(page);
+  await mockTileApiKeys(page);
+}
+
+async function mockForestTiles(page, onRequest = () => {}) {
+  await page.route("**/forest/*/*/*.png*", route => {
+    onRequest(route.request());
+    route.fulfill({
+      status: 200,
+      contentType: "image/png",
+      body: tinyPng,
+    });
+  });
 }
 
 function fullscreenControl(page) {
-  return page.locator([
-    ".leaflet-control-fullscreen a",
-    ".leaflet-control-zoom-fullscreen",
-    "a[title*='Full Screen']",
-    "a[title*='Fullscreen']",
-  ].join(", ")).first();
+  return page.getByRole("button", { name: /fullscreen/i }).first();
+}
+
+async function waitForPreviewMap(page) {
+  await expect(page.locator("#mapPreview")).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        Boolean(
+          document.querySelector("#mapPreview.leaflet-container") ||
+          document.querySelector("#mapPreview .leaflet-pane") ||
+          document.querySelector(".leaflet-control-zoom")
+        )
+      )
+    )
+    .toBe(true);
 }
 
 async function mockFullscreenApi(page) {
@@ -329,17 +536,21 @@ test("logout restores unauthenticated editor state", async ({ page }) => {
 
 test("cache toggle adds cache-busting param to tile requests", async ({ page }) => {
   await setupAuthenticatedEditor(page);
-
-  const cacheRequest = page.waitForRequest(request =>
-    request.url().includes("/forest/18/") &&
-    request.url().includes("?v=")
-  );
+  await mockForestTiles(page);
 
   await gotoEditor(page);
+  await waitForPreviewMap(page);
 
-  await page.getByLabel(/Disable cache/i).click();
+  const cacheToggle = page.getByLabel(/Disable cache/i);
+  await expect(cacheToggle).toBeVisible();
 
-  const request = await cacheRequest;
+  const [request] = await Promise.all([
+    page.waitForRequest(request =>
+      request.url().includes("/forest/18/") &&
+      request.url().includes("?v=")
+    ),
+    cacheToggle.click(),
+  ]);
 
   expect(request.url()).toContain("?v=");
 });
@@ -576,16 +787,19 @@ test("authenticated preview button sends preview API and updates status", async 
     })
   );
 
-  const previewRequestPromise = page.waitForRequest(request =>
-    request.url().endsWith("/api/preview-theme/forest") &&
-    request.method() === "POST"
-  );
-
   await gotoEditor(page);
 
-  await page.getByRole("button", { name: "Preview" }).click();
+  const previewButton = page.getByRole("button", { name: "Preview" });
+  await expect(previewButton).toBeVisible();
+  await expect(page.locator("input[type=color]")).toHaveCount(2);
 
-  const previewRequest = await previewRequestPromise;
+  const [previewRequest] = await Promise.all([
+    page.waitForRequest(request =>
+      request.url().endsWith("/api/preview-theme/forest") &&
+      request.method() === "POST"
+    ),
+    previewButton.click(),
+  ]);
 
   expect(JSON.parse(previewRequest.postData())).toEqual({
     background: [255, 255, 255, 255],
@@ -666,7 +880,9 @@ test("toggle pickers button hides and shows the editor", async ({ page }) => {
 });
 
 test("map fullscreen control is visible", async ({ page }) => {
+  await mockForestTiles(page);
   await page.goto(EDITOR_URL);
+  await waitForPreviewMap(page);
 
   const fullscreenButton = fullscreenControl(page);
 
@@ -675,7 +891,9 @@ test("map fullscreen control is visible", async ({ page }) => {
 
 test("map can enter fullscreen mode", async ({ page }) => {
   await mockFullscreenApi(page);
+  await mockForestTiles(page);
   await page.goto(EDITOR_URL);
+  await waitForPreviewMap(page);
 
   const fullscreenButton = fullscreenControl(page);
 

@@ -28,6 +28,7 @@ function loadApiRouter() {
   const saveTheme = vi.fn();
 
   const metrics = vi.fn(async () => "fake_metrics 1\n");
+  const getCachedOverpassDataForPoint = vi.fn();
   let tileZoomRange = [16, 19];
 
   mockModule("../../lib/themes.js", {
@@ -48,6 +49,7 @@ function loadApiRouter() {
   mockModule("../../lib/config.js", {
     KEYCLOAK_URL: "https://sso.example.com",
     KEYCLOAK_REALM: "curioo",
+    OVERPASS_CACHE_MAX_DISTANCE_METERS: 1000,
     getTileZoomRange: vi.fn(() => tileZoomRange),
     setTileZoomRange: vi.fn((range) => {
       if (
@@ -82,6 +84,10 @@ function loadApiRouter() {
     ),
   });
 
+  mockModule("../../lib/overpass.js", {
+    getCachedOverpassDataForPoint,
+  });
+
   const { createApiRouter } = require("../../routes/api.js");
 
   return {
@@ -90,6 +96,7 @@ function loadApiRouter() {
     saveThemes,
     saveTheme,
     metrics,
+    getCachedOverpassDataForPoint,
   };
 }
 
@@ -154,6 +161,138 @@ describe("api router", () => {
     expect(res.body).toEqual({
       tileZoomRange: [16, 19],
     });
+  });
+
+  it("GET /api/overpass returns cached overpass data for lat lon and distance", async () => {
+    const { app, mocks } = createApp();
+    const cachedData = {
+      elements: [
+        { type: "way", id: 123 },
+      ],
+    };
+    mocks.getCachedOverpassDataForPoint.mockReturnValue(cachedData);
+
+    const res = await request(app).get("/api/overpass?lat=48.6&lon=6.1&d=250");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(cachedData);
+    expect(mocks.getCachedOverpassDataForPoint).toHaveBeenCalledWith(48.6, 6.1, 250);
+  });
+
+  it("GET /api/overpass returns 404 when the cache is missing", async () => {
+    const { app, mocks } = createApp();
+    mocks.getCachedOverpassDataForPoint.mockReturnValue(null);
+
+    const res = await request(app).get("/api/overpass?lat=48.6&lon=6.1&d=250");
+
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: "Overpass cache not found" });
+  });
+
+  it("GET /api/overpass rejects invalid query parameters", async () => {
+    const { app, mocks } = createApp();
+
+    const res = await request(app).get("/api/overpass?lat=48.6&lon=oops&d=250");
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain("lat and lon");
+    expect(mocks.getCachedOverpassDataForPoint).not.toHaveBeenCalled();
+  });
+
+  it("GET /api/overpass uses the configured max distance when d is missing", async () => {
+    const { app, mocks } = createApp();
+    const cachedData = {
+      elements: [
+        { type: "way", id: 123 },
+      ],
+    };
+    mocks.getCachedOverpassDataForPoint.mockReturnValue(cachedData);
+
+    const res = await request(app).get("/api/overpass?lat=48.6&lon=6.1");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(cachedData);
+    expect(mocks.getCachedOverpassDataForPoint).toHaveBeenCalledWith(48.6, 6.1, 1000);
+  });
+
+  it("GET /api/overpass filters cached elements by tag pairs", async () => {
+    const { app, mocks } = createApp();
+    mocks.getCachedOverpassDataForPoint.mockReturnValue({
+      elements: [
+        { type: "node", id: 1, tags: { natural: "tree" } },
+        { type: "way", id: 2, tags: { building: "church" } },
+        { type: "way", id: 3, tags: { building: "yes" } },
+        { type: "node", id: 4 },
+      ],
+    });
+
+    const res = await request(app)
+      .get("/api/overpass?lat=48.6&lon=6.1&f=[natural:tree,building:church]");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      elements: [
+        { type: "node", id: 1, tags: { natural: "tree" } },
+        { type: "way", id: 2, tags: { building: "church" } },
+      ],
+    });
+  });
+
+  it("GET /api/overpass accepts filters without brackets", async () => {
+    const { app, mocks } = createApp();
+    mocks.getCachedOverpassDataForPoint.mockReturnValue({
+      elements: [
+        { type: "way", id: 1, tags: { building: "church" } },
+        { type: "way", id: 2, tags: { building: "yes" } },
+      ],
+    });
+
+    const res = await request(app)
+      .get("/api/overpass?lat=48.6&lon=6.1&f=building:church");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      elements: [
+        { type: "way", id: 1, tags: { building: "church" } },
+      ],
+    });
+  });
+
+  it("GET /api/overpass ignores empty filters", async () => {
+    const { app, mocks } = createApp();
+    const cachedData = {
+      elements: [
+        { type: "way", id: 123, tags: { building: "yes" } },
+      ],
+    };
+    mocks.getCachedOverpassDataForPoint.mockReturnValue(cachedData);
+
+    const res = await request(app).get("/api/overpass?lat=48.6&lon=6.1&f=[]");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(cachedData);
+  });
+
+  it("GET /api/overpass rejects missing coordinates", async () => {
+    const { app, mocks } = createApp();
+
+    const res = await request(app).get("/api/overpass?lat=48.6");
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain("lat and lon");
+    expect(mocks.getCachedOverpassDataForPoint).not.toHaveBeenCalled();
+  });
+
+  it("GET /api/overpass rejects distances outside the configured range", async () => {
+    const { app, mocks } = createApp();
+
+    const tooSmall = await request(app).get("/api/overpass?lat=48.6&lon=6.1&d=0");
+    const tooLarge = await request(app).get("/api/overpass?lat=48.6&lon=6.1&d=1001");
+
+    expect(tooSmall.status).toBe(400);
+    expect(tooLarge.status).toBe(400);
+    expect(tooLarge.body.error).toContain("between 1 and 1000 meters");
+    expect(mocks.getCachedOverpassDataForPoint).not.toHaveBeenCalled();
   });
 
   it("PUT /api/config/tile-zoom-range updates public tile configuration", async () => {

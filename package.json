@@ -1,12 +1,12 @@
 {
   "name": "tiles",
-  "version": "2.7.1",
+  "version": "2.8.0",
   "description": "Lightweight PNG tile server with real-time map theme editor",
   "author": "SaaShup - CuriooCity",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "dotenv -e .env -- rm -rf cache && node server.js",
+    "dev": "dotenv -e .env -- node server.js",
     "test:unit": "NODE_ENV=test vitest run --config vitest.unit.config.mjs",
     "test:api-setup": "NODE_ENV=test vitest run --config vitest.api.config.mjs",
     "test:api": "dotenv -e .env-dev -- start-server-and-test start http://localhost:3000 \"npm run test:api-setup\"",

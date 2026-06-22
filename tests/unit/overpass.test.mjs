@@ -20,6 +20,8 @@ const config = require("../../lib/config.js");
 
 const {
     fetchOverpass,
+    getBboxAroundLatLon,
+    getCachedOverpassDataForPoint,
     getOverpassData,
     mergeOverpassData
 } = overpass;
@@ -144,6 +146,69 @@ describe("overpass", () => {
         const data = await getOverpassData(z, x, y);
 
         expect(data).toEqual(cachedData);
+        expect(globalThis.fetch).not.toHaveBeenCalled();
+    });
+
+    it("getCachedOverpassDataForPoint returns merged cached zones without fetching", () => {
+        const zones = geo.getZonesForBbox(
+            getBboxAroundLatLon(48.61, 6.01, 1600)
+        );
+
+        fs.mkdirSync(CACHE_DIR, {
+            recursive: true
+        });
+
+        zones.forEach((zone, index) => {
+            const cachedData = {
+                elements: [
+                    { id: 1, type: "way" },
+                    { id: index + 2, type: "node" },
+                ],
+            };
+
+            fs.writeFileSync(
+                `${getCachePathForZone(zone)}.br`,
+                zlib.brotliCompressSync(Buffer.from(JSON.stringify(cachedData)))
+            );
+        });
+
+        globalThis.fetch = vi.fn();
+
+        const data = getCachedOverpassDataForPoint(48.61, 6.01, 1600);
+
+        expect(data.elements).toEqual([
+            { id: 1, type: "way" },
+            ...zones.map((_zone, index) => ({ id: index + 2, type: "node" })),
+        ]);
+        expect(globalThis.fetch).not.toHaveBeenCalled();
+    });
+
+    it("getCachedOverpassDataForPoint returns available cached zones when others are missing", () => {
+        const zones = geo.getZonesForBbox(
+            getBboxAroundLatLon(48.61, 6.01, 1600)
+        );
+        const cachedData = {
+            elements: [{ id: 1, type: "way" }],
+        };
+
+        fs.mkdirSync(CACHE_DIR, {
+            recursive: true
+        });
+        fs.writeFileSync(
+            `${getCachePathForZone(zones[0])}.br`,
+            zlib.brotliCompressSync(Buffer.from(JSON.stringify(cachedData)))
+        );
+
+        globalThis.fetch = vi.fn();
+
+        expect(getCachedOverpassDataForPoint(48.61, 6.01, 1600)).toEqual(cachedData);
+        expect(globalThis.fetch).not.toHaveBeenCalled();
+    });
+
+    it("getCachedOverpassDataForPoint returns null when no touched zone is cached", () => {
+        globalThis.fetch = vi.fn();
+
+        expect(getCachedOverpassDataForPoint(48.61, 6.01, 1600)).toBeNull();
         expect(globalThis.fetch).not.toHaveBeenCalled();
     });
 

@@ -16,6 +16,7 @@ function loadConfig(env = {}) {
   delete process.env.KEYCLOAK_REALM;
   delete process.env.THEME;
   delete process.env.OVERPASS_URL;
+  delete process.env.OVERPASS_CACHE_MAX_DISTANCE_METERS;
   delete process.env.TILE_ZOOM_RANGE;
   delete process.env.TILE_RUNTIME_CONFIG_FILE;
   delete process.env.TILE_API_KEYS;
@@ -61,6 +62,7 @@ describe("config", () => {
     expect(config.DEFAULT_THEME).toBe("forest");
     expect(config.ZONE_SIZE_DEGREES).toBe(0.02);
     expect(config.OVERPASS_URL).toBe("https://overpass");
+    expect(config.OVERPASS_CACHE_MAX_DISTANCE_METERS).toBe(1000);
     expect(config.TILE_ZOOM_RANGE).toEqual([18, 18]);
     expect(config.TILE_API_KEYS).toEqual([]);
   });
@@ -73,6 +75,7 @@ describe("config", () => {
       KEYCLOAK_REALM: "demo",
       THEME: "CITY",
       OVERPASS_URL: "https://overpass.example.com",
+      OVERPASS_CACHE_MAX_DISTANCE_METERS: "2500",
       TILE_ZOOM_RANGE: "[16,19]",
       TILE_API_KEYS: '["key1","key2"]',
     });
@@ -83,15 +86,30 @@ describe("config", () => {
     expect(config.KEYCLOAK_REALM).toBe("demo");
     expect(config.DEFAULT_THEME).toBe("city");
     expect(config.OVERPASS_URL).toBe("https://overpass.example.com");
+    expect(config.OVERPASS_CACHE_MAX_DISTANCE_METERS).toBe(2500);
     expect(config.TILE_ZOOM_RANGE).toEqual([16, 19]);
     expect(config.TILE_API_KEYS).toEqual(["key1", "key2"]);
   });
+
+  it.each(["", "0", "-1", "not-a-number"])(
+    "falls back to the default Overpass cache max distance for %s",
+    (distance) => {
+      const config = loadConfig({
+        OVERPASS_CACHE_MAX_DISTANCE_METERS: distance,
+      });
+
+      expect(config.OVERPASS_CACHE_MAX_DISTANCE_METERS).toBe(1000);
+    }
+  );
 
   it("resolves TILE_RUNTIME_CONFIG_FILE as a directory or legacy file path", () => {
     const directoryConfig = loadConfig({
       TILE_RUNTIME_CONFIG_FILE: tempDir,
     });
 
+    expect(directoryConfig.resolveRuntimeConfigPath()).toBe(
+      path.join(process.cwd(), "data", "runtime-config.json")
+    );
     expect(directoryConfig.TILE_RUNTIME_CONFIG_DIR).toBe(tempDir);
     expect(directoryConfig.TILE_RUNTIME_CONFIG_FILE).toBe(
       path.join(tempDir, "runtime-config.json")
