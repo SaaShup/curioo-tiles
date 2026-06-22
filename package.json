@@ -6,7 +6,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "dotenv -e .env -- rm -rf cache && node server.js",
+    "dev": "dotenv -e .env -- node server.js",
     "test:unit": "NODE_ENV=test vitest run --config vitest.unit.config.mjs",
     "test:api-setup": "NODE_ENV=test vitest run --config vitest.api.config.mjs",
     "test:api": "dotenv -e .env-dev -- start-server-and-test start http://localhost:3000 \"npm run test:api-setup\"",

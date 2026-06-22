@@ -92,6 +92,24 @@ GET /space/18/135329/89901.png
 </pre>
         </div>
       </div>
+
+      <div class="endpoint">
+        <div class="method get">GET</div>
+
+        <div>
+          <div class="path">/api/overpass?lat={lat}&amp;lon={lon}&amp;d={meters}&amp;f=[key:value]</div>
+
+          <div class="desc">
+            Return cached Overpass JSON around a coordinate. Distance is optional, defaults to 1000 meters, and can be capped with OVERPASS_CACHE_MAX_DISTANCE_METERS. Optional f filters elements by tag pairs. This endpoint only reads local cache and returns 404 when no matching zone data is available.
+          </div>
+
+<pre>
+GET /api/overpass?lat=48.6&amp;lon=6.1
+GET /api/overpass?lat=48.6&amp;lon=6.1&amp;d=250
+GET /api/overpass?lat=48.6&amp;lon=6.1&amp;f=[natural:tree,building:church]
+</pre>
+        </div>
+      </div>
     </section>
 
     <section class="section" id="editor-api">
