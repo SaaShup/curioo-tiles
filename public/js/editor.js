@@ -472,9 +472,74 @@ function initPreviewMap() {
   });
 
   previewLayer = createPreviewTileLayer().addTo(previewMap);
+  installFullscreenFallbackControl(previewMap);
 
   previewMap.on("zoomend", updateCurrentZoomInput);
   updateCurrentZoomInput();
+}
+
+function installFullscreenFallbackControl(map) {
+  if (document.querySelector(".leaflet-control-fullscreen, .leaflet-control-zoom-fullscreen")) {
+    return;
+  }
+
+  const FullscreenFallback = L.Control.extend({
+    options: {
+      position: "topleft",
+    },
+
+    onAdd() {
+      const container = L.DomUtil.create("div", "leaflet-control leaflet-bar leaflet-control-fullscreen leaflet-control-zoom-fullscreen");
+      const link = L.DomUtil.create("a", "", container);
+      link.href = "#";
+      link.title = "Fullscreen";
+      link.setAttribute("role", "button");
+      link.setAttribute("aria-label", "Fullscreen");
+      link.textContent = "⛶";
+
+      L.DomEvent.disableClickPropagation(container);
+      L.DomEvent.on(link, "click", (event) => {
+        L.DomEvent.preventDefault(event);
+        const element = map.getContainer();
+        const fullscreenElement =
+          document.fullscreenElement ||
+          document.webkitFullscreenElement ||
+          document.mozFullScreenElement ||
+          document.msFullscreenElement;
+
+        if (fullscreenElement) {
+          const exitFullscreen =
+            document.exitFullscreen ||
+            document.webkitExitFullscreen ||
+            document.mozCancelFullScreen ||
+            document.msExitFullscreen;
+          element.classList.remove("leaflet-fullscreen-on");
+          container.classList.remove("leaflet-fullscreen-on");
+          link.title = "Fullscreen";
+          link.setAttribute("aria-label", "Fullscreen");
+          exitFullscreen?.call(document);
+          return;
+        }
+
+        element.classList.add("leaflet-fullscreen-on");
+        container.classList.add("leaflet-fullscreen-on");
+        link.title = "Exit Fullscreen";
+        link.setAttribute("aria-label", "Exit Fullscreen");
+
+        const requestFullscreen =
+          element.requestFullscreen ||
+          element.webkitRequestFullscreen ||
+          element.webkitRequestFullScreen ||
+          element.mozRequestFullScreen ||
+          element.msRequestFullscreen;
+        requestFullscreen?.call(element)?.catch?.(() => {});
+      });
+
+      return container;
+    },
+  });
+
+  map.addControl(new FullscreenFallback());
 }
 
 async function clearPreviewTheme(theme) {
@@ -620,7 +685,7 @@ function getEditorTheme() {
   return updated;
 }
 
-async function waitForEditorInputs(timeout = 500) {
+async function waitForEditorInputs(timeout = 2000) {
   const start = Date.now();
   while (Date.now() - start < timeout) {
     if (document.querySelectorAll("input[type=color]").length > 0) return;

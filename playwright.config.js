@@ -11,6 +11,7 @@ fs.mkdirSync(TEST_RUNTIME_CONFIG_DIR, { recursive: true });
 module.exports = defineConfig({
   testDir: "./tests/frontend",
   testMatch: "**/*.spec.js",
+  timeout: 10000,
   webServer: {
     command: "npm run start",
     timeout: 120000,
